@@ -15,7 +15,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 
 export default async function DashboardPage() {
   const [user, incidents, scenarioRuns, campaignRuns] = await Promise.allSettled([
-    serverApi.get<User>('/api/v1/users/me'),
+    serverApi.get<User>('/api/v1/auth/me'),
     serverApi.get<Incident[]>('/api/v1/incidents'),
     serverApi.get<ScenarioRun[]>('/api/v1/scenario-runs'),
     serverApi.get<CampaignRun[]>('/api/v1/campaign-runs'),

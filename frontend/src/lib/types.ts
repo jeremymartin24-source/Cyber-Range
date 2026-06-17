@@ -310,3 +310,10 @@ export interface CourseLeaderboardEntry {
   highest_score: number
   total_decisions: number
 }
+
+export interface PaginatedUsers {
+  items: User[]
+  total: number
+  limit: number
+  offset: number
+}

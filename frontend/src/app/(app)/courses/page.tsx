@@ -1,13 +1,14 @@
+import Link from 'next/link'
 import { serverApi } from '@/lib/server-api'
-import type { Course } from '@/lib/types'
+import type { Course, User } from '@/lib/types'
 
 export default async function CoursesPage() {
-  let courses: Course[] = []
-  try {
-    courses = await serverApi.get<Course[]>('/api/v1/courses')
-  } catch {
-    // handled below
-  }
+  const [courses, me] = await Promise.all([
+    serverApi.get<Course[]>('/api/v1/courses').catch(() => [] as Course[]),
+    serverApi.get<User>('/api/v1/auth/me').catch(() => null),
+  ])
+
+  const canManage = me?.role === 'admin' || me?.role === 'instructor'
 
   return (
     <div className="p-6">
@@ -23,7 +24,7 @@ export default async function CoursesPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {courses.map(c => (
-            <CourseCard key={c.id} course={c} />
+            <CourseCard key={c.id} course={c} canManage={canManage} />
           ))}
         </div>
       )}
@@ -31,14 +32,16 @@ export default async function CoursesPage() {
   )
 }
 
-function CourseCard({ course }: { course: Course }) {
+function CourseCard({ course, canManage }: { course: Course; canManage: boolean }) {
   const label = [course.semester, course.year].filter(Boolean).join(' ')
   return (
     <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 flex flex-col gap-3">
       <div>
         <div className="flex items-center gap-2 mb-1">
           {!course.is_active && (
-            <span className="text-xs text-gray-600 border border-gray-700 rounded px-1.5 py-0.5">inactive</span>
+            <span className="text-xs text-gray-600 border border-gray-700 rounded px-1.5 py-0.5">
+              inactive
+            </span>
           )}
           {label && <span className="text-xs text-gray-500">{label}</span>}
         </div>
@@ -49,6 +52,14 @@ function CourseCard({ course }: { course: Course }) {
       )}
       <div className="flex items-center justify-between text-xs text-gray-500 mt-auto pt-1 border-t border-gray-800">
         <span>Created {new Date(course.created_at).toLocaleDateString()}</span>
+        {canManage && (
+          <Link
+            href={`/courses/${course.id}`}
+            className="text-indigo-400 hover:text-indigo-300 font-medium"
+          >
+            Manage →
+          </Link>
+        )}
       </div>
     </div>
   )
