@@ -14,6 +14,7 @@ from app.api.v1 import (
     scenarios,
     wazuh,
     reports,
+    campaigns,
 )
 
 router = APIRouter(prefix="/api/v1")
@@ -32,3 +33,5 @@ router.include_router(scenarios.router)
 router.include_router(scenarios.runs_router)
 router.include_router(wazuh.router)
 router.include_router(reports.router)
+router.include_router(campaigns.router)
+router.include_router(campaigns.runs_router)

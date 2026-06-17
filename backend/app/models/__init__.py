@@ -11,6 +11,10 @@ from app.models.case_note import CaseNote
 from app.models.student_decision import StudentDecision, DecisionType
 from app.models.scenario import Scenario, ScenarioRun, Inject, ScenarioDifficulty, ScenarioRunStatus, InjectType, InjectStatus
 from app.models.grade import StudentGrade
+from app.models.campaign import (
+    Campaign, CampaignScenarioEntry, CampaignRun, CampaignRunProgress,
+    CampaignRunStatus, CampaignRunProgressStatus,
+)
 
 __all__ = [
     "Base",
@@ -28,4 +32,6 @@ __all__ = [
     "Scenario", "ScenarioRun", "Inject",
     "ScenarioDifficulty", "ScenarioRunStatus", "InjectType", "InjectStatus",
     "StudentGrade",
+    "Campaign", "CampaignScenarioEntry", "CampaignRun", "CampaignRunProgress",
+    "CampaignRunStatus", "CampaignRunProgressStatus",
 ]

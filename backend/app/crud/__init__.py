@@ -10,3 +10,4 @@ from app.crud.case_note import case_note
 from app.crud.student_decision import student_decision
 from app.crud.scenario import scenario, scenario_run, inject
 from app.crud.grade import grade
+from app.crud.campaign import campaign, campaign_run, campaign_progress
