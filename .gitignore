@@ -43,6 +43,9 @@ celerybeat.pid
 # Alembic
 # (keep migrations but not pyc)
 
+# TypeScript build artifacts
+*.tsbuildinfo
+
 # Test artifacts
 backend/test.db
 *.db
