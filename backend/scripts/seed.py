@@ -1,182 +1,302 @@
 """
-Seed script: creates default org, users, a sample course, teams, and endpoints.
-Run with: python -m scripts.seed
+Seed the database with initial data for a fresh CyberOps Range deployment.
+
+Idempotent — safe to run multiple times. Creates only what doesn't exist.
+
+Environment variables:
+  DATABASE_URL          required (set by docker-compose)
+  SEED_ADMIN_PASSWORD   admin account password (default: Admin1234!)
+  SEED_SKIP             set to "1" to skip seeding entirely
 """
+
 import asyncio
-import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import sys
+from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from sqlalchemy import select
+
+from app.crud.campaign import campaign as campaign_crud
+from app.crud.course import course as course_crud
+from app.crud.course import enrollment as enrollment_crud
+from app.crud.endpoint import endpoint as endpoint_crud
+from app.crud.organization import organization as org_crud
+from app.crud.team import team as team_crud
+from app.crud.team import team_member as team_member_crud
+from app.crud.user import user as user_crud
 from app.database import AsyncSessionLocal
-from app.crud import organization as org_crud, user as user_crud, course as course_crud
-from app.crud import team as team_crud, team_member as team_member_crud, endpoint as endpoint_crud
-from app.crud import enrollment as enrollment_crud
-from app.schemas.organization import OrganizationCreate
-from app.schemas.user import UserCreate
-from app.schemas.course import CourseCreate
-from app.schemas.team import TeamCreate, TeamMemberAdd
-from app.schemas.endpoint import EndpointCreate
-from app.models.user import UserRole
+from app.models.campaign import CampaignScenarioEntry
+from app.models.endpoint import Endpoint
 from app.models.team import TeamMemberRole
+from app.models.user import UserRole
+from app.schemas.campaign import CampaignCreate
+from app.schemas.course import CourseCreate
+from app.schemas.endpoint import EndpointCreate
+from app.schemas.organization import OrganizationCreate
+from app.schemas.team import TeamCreate
+from app.schemas.user import UserCreate
+from app.services import scenario_service
+
+ADMIN_PASSWORD = os.environ.get("SEED_ADMIN_PASSWORD", "Admin1234!")
+
+_GREEN = "\033[92m"
+_GREY = "\033[90m"
+_YELLOW = "\033[93m"
+_RESET = "\033[0m"
 
 
-async def seed():
+def _created(msg: str) -> None:
+    print(f"  {_GREEN}[created]{_RESET} {msg}")
+
+
+def _exists(msg: str) -> None:
+    print(f"  {_GREY}[exists] {_RESET} {msg}")
+
+
+async def seed() -> None:  # noqa: C901
     async with AsyncSessionLocal() as db:
-        # Organization
-        existing_org = await org_crud.get_by_slug(db, slug="bmg")
-        if not existing_org:
-            org = await org_crud.create(db, obj_in=OrganizationCreate(
-                name="Buckeye Manufacturing Group",
-                slug="bmg",
-                settings={
-                    "branding": {"company_name": "Buckeye Manufacturing Group"},
-                    "wazuh_agent_prefix": "BMG-",
-                },
-            ))
-            print(f"Created organization: {org.name} (id={org.id})")
+        # ── Organization ─────────────────────────────────────────────────────────
+        print("\n── Organization")
+        org = await org_crud.get_by_slug(db, slug="bmg")
+        if not org:
+            org = await org_crud.create(
+                db,
+                obj_in=OrganizationCreate(
+                    name="Buckeye Manufacturing Group",
+                    slug="bmg",
+                    settings={
+                        "branding": {"company_name": "Buckeye Manufacturing Group"},
+                        "wazuh_agent_prefix": "BMG-",
+                        "timezone": "America/New_York",
+                        "industry": "manufacturing",
+                    },
+                ),
+            )
+            await db.commit()
+            _created("Buckeye Manufacturing Group (slug=bmg)")
         else:
-            org = existing_org
-            print(f"Organization already exists: {org.name}")
+            _exists("Buckeye Manufacturing Group")
 
-        # Admin user
-        existing_admin = await user_crud.get_by_email(db, email="admin@bmg.example.com")
-        if not existing_admin:
-            admin = await user_crud.create(db, obj_in=UserCreate(
-                email="admin@bmg.example.com",
-                password="Admin1234!",
-                first_name="System",
-                last_name="Admin",
-                role=UserRole.admin,
-                organization_id=org.id,
-            ))
-            print(f"Created admin: {admin.email}")
-            print("  Default password: Admin1234!  CHANGE IN PRODUCTION")
+        # ── Users ────────────────────────────────────────────────────────────────
+        print("\n── Users")
+
+        admin = await user_crud.get_by_email(db, email="admin@bmg.example.com")
+        if not admin:
+            admin = await user_crud.create(
+                db,
+                obj_in=UserCreate(
+                    email="admin@bmg.example.com",
+                    password=ADMIN_PASSWORD,
+                    first_name="System",
+                    last_name="Admin",
+                    role=UserRole.admin,
+                    organization_id=org.id,
+                ),
+            )
+            await db.commit()
+            _created(f"admin@bmg.example.com  (password: {ADMIN_PASSWORD})")
         else:
-            admin = existing_admin
-            print(f"Admin already exists: {admin.email}")
+            _exists("admin@bmg.example.com")
 
-        # Instructor user
-        existing_instructor = await user_crud.get_by_email(db, email="instructor@bmg.example.com")
-        if not existing_instructor:
-            instructor = await user_crud.create(db, obj_in=UserCreate(
-                email="instructor@bmg.example.com",
-                password="Instructor1234!",
-                first_name="Jane",
-                last_name="Smith",
-                role=UserRole.instructor,
-                organization_id=org.id,
-            ))
-            print(f"Created instructor: {instructor.email}")
+        instructor = await user_crud.get_by_email(db, email="instructor@bmg.example.com")
+        if not instructor:
+            instructor = await user_crud.create(
+                db,
+                obj_in=UserCreate(
+                    email="instructor@bmg.example.com",
+                    password="Instructor1234!",
+                    first_name="Jane",
+                    last_name="Smith",
+                    role=UserRole.instructor,
+                    organization_id=org.id,
+                ),
+            )
+            await db.commit()
+            _created("instructor@bmg.example.com  (password: Instructor1234!)")
         else:
-            instructor = existing_instructor
-            print(f"Instructor already exists: {instructor.email}")
+            _exists("instructor@bmg.example.com")
 
-        # Student users
-        student_data = [
+        student_defs = [
             ("alice@bmg.example.com", "Alice", "Johnson"),
             ("bob@bmg.example.com", "Bob", "Williams"),
             ("carol@bmg.example.com", "Carol", "Davis"),
             ("dave@bmg.example.com", "Dave", "Miller"),
         ]
         students = []
-        for email, first, last in student_data:
-            existing = await user_crud.get_by_email(db, email=email)
-            if not existing:
-                s = await user_crud.create(db, obj_in=UserCreate(
-                    email=email,
-                    password="Student1234!",
-                    first_name=first,
-                    last_name=last,
-                    role=UserRole.student,
-                    organization_id=org.id,
-                ))
-                print(f"Created student: {s.email}")
-                students.append(s)
+        for email, first, last in student_defs:
+            s = await user_crud.get_by_email(db, email=email)
+            if not s:
+                s = await user_crud.create(
+                    db,
+                    obj_in=UserCreate(
+                        email=email,
+                        password="Student1234!",
+                        first_name=first,
+                        last_name=last,
+                        role=UserRole.student,
+                        organization_id=org.id,
+                    ),
+                )
+                await db.commit()
+                _created(f"{email}  (password: Student1234!)")
             else:
-                students.append(existing)
-                print(f"Student already exists: {email}")
+                _exists(email)
+            students.append(s)
 
-        # Course
+        # ── Course ───────────────────────────────────────────────────────────────
+        print("\n── Course")
         existing_courses = await course_crud.get_by_instructor(db, instructor.id)
         if not existing_courses:
-            course = await course_crud.create(db, obj_in=CourseCreate(
-                organization_id=org.id,
-                name="Introduction to Cybersecurity Operations",
-                description="Hands-on SOC analyst training using simulated incidents at BMG.",
-                semester="Fall",
-                year=2025,
-            ), instructor_id=instructor.id)
-            print(f"Created course: {course.name}")
+            course = await course_crud.create(
+                db,
+                obj_in=CourseCreate(
+                    organization_id=org.id,
+                    name="Introduction to Cybersecurity Operations",
+                    description=(
+                        "Hands-on SOC analyst training using simulated incidents at BMG. "
+                        "Students triage alerts, manage incidents, and practise the full "
+                        "detect-contain-recover cycle."
+                    ),
+                    semester="Fall",
+                    year=2025,
+                ),
+                instructor_id=instructor.id,
+            )
+            _created("Introduction to Cybersecurity Operations (Fall 2025)")
         else:
             course = existing_courses[0]
-            print(f"Course already exists: {course.name}")
+            _exists(course.name)
 
-        # Enroll students
+        # ── Enrollments ──────────────────────────────────────────────────────────
+        print("\n── Enrollments")
         for student in students:
-            existing_enrollment = await enrollment_crud.get_by_course_and_user(db, course.id, student.id)
-            if not existing_enrollment:
-                await enrollment_crud.enroll(db, course.id, student.id)
-                print(f"Enrolled {student.email}")
-
-        # Teams
-        team_configs = [
-            ("Alpha Team", [students[0], students[1]]),
-            ("Beta Team", [students[2], students[3]]),
-        ]
-        for team_name, team_students in team_configs:
-            existing_teams = await team_crud.get_by_course(db, course.id)
-            team_exists = any(t.name == team_name for t in existing_teams)
-            if not team_exists:
-                t = await team_crud.create(db, obj_in=TeamCreate(
-                    course_id=course.id,
-                    name=team_name,
-                ))
-                print(f"Created team: {t.name}")
-                for i, student in enumerate(team_students):
-                    role = TeamMemberRole.lead if i == 0 else TeamMemberRole.analyst
-                    await team_member_crud.add_member(db, t.id, student.id, role)
-                    print(f"  Added {student.email} as {role.value}")
+            e = await enrollment_crud.get_by_course_and_user(
+                db, course_id=course.id, user_id=student.id
+            )
+            if not e:
+                await enrollment_crud.enroll(db, course_id=course.id, user_id=student.id)
+                _created(f"{student.email} → {course.name}")
             else:
-                print(f"Team already exists: {team_name}")
+                _exists(student.email)
 
-        # Simulated endpoints
-        endpoint_configs = [
+        # ── Teams ────────────────────────────────────────────────────────────────
+        print("\n── Teams")
+        team_defs = [
+            (
+                "Alpha Team",
+                [(students[0], TeamMemberRole.lead), (students[1], TeamMemberRole.analyst)],
+            ),
+            (
+                "Beta Team",
+                [(students[2], TeamMemberRole.lead), (students[3], TeamMemberRole.analyst)],
+            ),
+        ]
+        for team_name, members in team_defs:
+            existing = await team_crud.get_by_course(db, course.id)
+            if not any(t.name == team_name for t in existing):
+                t = await team_crud.create(
+                    db, obj_in=TeamCreate(course_id=course.id, name=team_name)
+                )
+                for student, role in members:
+                    await team_member_crud.add_member(db, t.id, student.id, role)
+                await db.commit()
+                _created(f"{team_name}  ({len(members)} members)")
+            else:
+                _exists(team_name)
+
+        # ── Endpoints (simulated BMG network) ────────────────────────────────────
+        print("\n── Endpoints")
+        endpoint_defs = [
             ("bmg-dc01", "10.0.1.10", "windows", "Windows Server 2022", "Domain Controller"),
             ("bmg-fs01", "10.0.1.11", "windows", "Windows Server 2022", "File Server"),
             ("bmg-web01", "10.0.2.10", "linux", "Ubuntu 22.04 LTS", "Web Server"),
-            ("bmg-workstation01", "10.0.3.101", "windows", "Windows 11 Pro", "HR Workstation"),
-            ("bmg-workstation02", "10.0.3.102", "windows", "Windows 11 Pro", "Finance Workstation"),
+            (
+                "WIN-WS-CAROL-01",
+                "10.0.3.101",
+                "windows",
+                "Windows 11 Pro",
+                "HR Workstation — Carol Johnson",
+            ),
+            (
+                "WIN-WS-BOB-01",
+                "10.0.3.102",
+                "windows",
+                "Windows 11 Pro",
+                "Finance Workstation — Bob Williams",
+            ),
         ]
-        for hostname, ip, os_platform, os_version, description in endpoint_configs:
-            from sqlalchemy import select
-            from app.models.endpoint import Endpoint
-            result = await db.execute(
-                select(Endpoint).where(Endpoint.hostname == hostname)
-            )
-            existing_ep = result.scalar_one_or_none()
-            if not existing_ep:
-                ep = await endpoint_crud.create(
+        for hostname, ip, platform, version, description in endpoint_defs:
+            result = await db.execute(select(Endpoint).where(Endpoint.hostname == hostname))
+            if not result.scalar_one_or_none():
+                await endpoint_crud.create(
                     db,
                     obj_in=EndpointCreate(
                         hostname=hostname,
                         ip_address=ip,
-                        os_platform=os_platform,
-                        os_version=os_version,
+                        os_platform=platform,
+                        os_version=version,
                         description=description,
                         tags=["simulation"],
                     ),
                     organization_id=org.id,
                 )
-                print(f"Created endpoint: {ep.hostname} ({ep.ip_address})")
+                await db.commit()
+                _created(f"{hostname}  ({ip})")
             else:
-                print(f"Endpoint already exists: {hostname}")
+                _exists(hostname)
 
-        print("\nSeed complete.")
-        print("Credentials:")
-        print("  admin@bmg.example.com / Admin1234!")
-        print("  instructor@bmg.example.com / Instructor1234!")
-        print("  alice@bmg.example.com / Student1234!")
+        # ── Scenarios ─────────────────────────────────────────────────────────────
+        print("\n── Scenarios")
+        yaml_files = await scenario_service.list_scenario_files()
+        scenarios = []
+        for fname in sorted(yaml_files):
+            sc = await scenario_service.import_scenario(db, yaml_path=fname)
+            _created(f"{sc.name}  (v{sc.version})")
+            scenarios.append(sc)
+
+        # ── Campaign ─────────────────────────────────────────────────────────────
+        if len(scenarios) >= 2:
+            print("\n── Campaign")
+            camp = await campaign_crud.get_by_slug(db, slug="bmg-foundations-arc")
+            if not camp:
+                camp = await campaign_crud.create(
+                    db,
+                    obj_in=CampaignCreate(
+                        slug="bmg-foundations-arc",
+                        name="BMG Foundations Arc",
+                        description=(
+                            "Two-scenario training arc: phishing response followed by ransomware "
+                            "tabletop — the core sequence for Introduction to Cybersecurity Operations."
+                        ),
+                    ),
+                    created_by=admin.id,
+                )
+                for position, sc in enumerate(scenarios[:2], start=1):
+                    db.add(
+                        CampaignScenarioEntry(
+                            campaign_id=camp.id,
+                            scenario_id=sc.id,
+                            position=position,
+                        )
+                    )
+                await db.commit()
+                _created("BMG Foundations Arc  (phishing → ransomware)")
+            else:
+                _exists("BMG Foundations Arc")
+
+    print(f"\n{_GREEN}Seed complete.{_RESET}")
+    print(f"\n  Admin login: admin@bmg.example.com / {ADMIN_PASSWORD}")
+    print(f"  {_YELLOW}!! Change the admin password immediately in production !!{_RESET}\n")
+
+
+def main() -> None:
+    if os.environ.get("SEED_SKIP") == "1":
+        print("SEED_SKIP=1 — skipping database seed.")
+        return
+    asyncio.run(seed())
 
 
 if __name__ == "__main__":
-    asyncio.run(seed())
+    main()
