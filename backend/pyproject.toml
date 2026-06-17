@@ -29,11 +29,29 @@ dev = [
     "pytest-cov>=5.0.0",
     "anyio>=4.6.0",
     "aiosqlite>=0.20.0",
+    "ruff>=0.6.0",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = [
+    "E501",    # line length — enforced by formatter, not linter
+    "F821",    # SQLAlchemy uses lazy string forward refs in relationships
+    "UP046",   # CRUDBase[T] generic pattern is idiomatic for SQLAlchemy CRUD
+    "UP042",   # str+Enum works in 3.12; StrEnum migration is out of scope
+]
+
+[tool.ruff.lint.per-file-ignores]
+"app/crud/__init__.py" = ["F401"]       # intentional re-exports
+"app/services/__init__.py" = ["F401"]   # intentional re-exports
 
 [tool.uv]
 dev-dependencies = [
@@ -42,4 +60,5 @@ dev-dependencies = [
     "pytest-cov>=5.0.0",
     "anyio>=4.6.0",
     "aiosqlite>=0.20.0",
+    "ruff>=0.6.0",
 ]

@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.base import CRUDBase
 from app.models.organization import Organization
 from app.schemas.organization import OrganizationCreate, OrganizationUpdate
@@ -25,7 +26,9 @@ class CRUDOrganization(CRUDBase[Organization]):
         await db.refresh(org)
         return org
 
-    async def update(self, db: AsyncSession, *, obj: Organization, obj_in: OrganizationUpdate) -> Organization:
+    async def update(
+        self, db: AsyncSession, *, obj: Organization, obj_in: OrganizationUpdate
+    ) -> Organization:
         data = obj_in.model_dump(exclude_unset=True)
         for field, value in data.items():
             setattr(obj, field, value)

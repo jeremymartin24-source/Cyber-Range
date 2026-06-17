@@ -1,11 +1,14 @@
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.crud import case_note as note_crud
+from app.crud import incident as incident_crud
 from app.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.user import User, UserRole
-from app.crud import case_note as note_crud, incident as incident_crud
-from app.schemas.case_note import CaseNoteCreate, CaseNoteUpdate, CaseNoteResponse
+from app.schemas.case_note import CaseNoteCreate, CaseNoteResponse, CaseNoteUpdate
 from app.schemas.common import MessageResponse
 from app.services import decision_service
 
@@ -68,7 +71,11 @@ async def get_note(
     note = await note_crud.get(db, note_id)
     if not note or note.incident_id != incident_id:
         raise HTTPException(status_code=404, detail="Note not found")
-    if note.is_private and note.author_id != current_user.id and current_user.role == UserRole.student:
+    if (
+        note.is_private
+        and note.author_id != current_user.id
+        and current_user.role == UserRole.student
+    ):
         raise HTTPException(status_code=403, detail="Note not found")
     return note
 

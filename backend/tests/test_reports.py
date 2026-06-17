@@ -1,20 +1,23 @@
 """
 Tests for grading and reporting endpoints.
 """
+
 import uuid
+
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.crud import course as course_crud
+from app.crud import user as user_crud
 from app.models import Organization, User
-from app.crud import course as course_crud, user as user_crud
+from app.models.user import UserRole
 from app.schemas.course import CourseCreate
 from app.schemas.user import UserCreate
-from app.models.user import UserRole
-
 
 # ── Shared fixtures ─────────────────────────────────────────────────────────────
+
 
 @pytest_asyncio.fixture
 async def report_course(db: AsyncSession, test_org: Organization, test_instructor: User):
@@ -35,14 +38,17 @@ async def report_student(db: AsyncSession, test_org: Organization):
     existing = await user_crud.get_by_email(db, email="report_student@test.com")
     if existing:
         return existing
-    return await user_crud.create(db, obj_in=UserCreate(
-        email="report_student@test.com",
-        password="TestPass123!",
-        first_name="Report",
-        last_name="Student",
-        role=UserRole.student,
-        organization_id=test_org.id,
-    ))
+    return await user_crud.create(
+        db,
+        obj_in=UserCreate(
+            email="report_student@test.com",
+            password="TestPass123!",
+            first_name="Report",
+            last_name="Student",
+            role=UserRole.student,
+            organization_id=test_org.id,
+        ),
+    )
 
 
 @pytest_asyncio.fixture
@@ -82,6 +88,7 @@ async def active_run_for_grading(
 
 
 # ── Run report ──────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_run_report(
@@ -157,6 +164,7 @@ async def test_run_report_not_found(client: AsyncClient, instructor_token: str):
 
 
 # ── Grade CRUD ──────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_create_grade(
@@ -281,7 +289,7 @@ async def test_update_grade(
 ):
     run_id = active_run_for_grading["id"]
     # Create if not exists
-    create_resp = await client.post(
+    await client.post(
         f"/api/v1/scenario-runs/{run_id}/grades",
         json={"student_id": str(report_student.id), "score": 70.0},
         headers={"Authorization": f"Bearer {instructor_token}"},
@@ -305,14 +313,17 @@ async def test_delete_grade(
     test_org: Organization,
 ):
     """Create a fresh student specifically for deletion test to avoid conflicts."""
-    student = await user_crud.create(db, obj_in=UserCreate(
-        email="delete_grade_student@test.com",
-        password="TestPass123!",
-        first_name="Delete",
-        last_name="GradeTest",
-        role=UserRole.student,
-        organization_id=test_org.id,
-    ))
+    student = await user_crud.create(
+        db,
+        obj_in=UserCreate(
+            email="delete_grade_student@test.com",
+            password="TestPass123!",
+            first_name="Delete",
+            last_name="GradeTest",
+            role=UserRole.student,
+            organization_id=test_org.id,
+        ),
+    )
     run_id = active_run_for_grading["id"]
     create_resp = await client.post(
         f"/api/v1/scenario-runs/{run_id}/grades",
@@ -336,6 +347,7 @@ async def test_delete_grade(
 
 
 # ── Course-level endpoints ──────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_course_grades(

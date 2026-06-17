@@ -11,25 +11,26 @@ Wazuh alert structure (abbreviated):
   "full_log": "..."
 }
 """
+
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.schemas.alert import AlertCreate
 
 
 def _parse_timestamp(ts: str | None) -> datetime:
     if not ts:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
     try:
         # Python 3.11 fromisoformat handles "+0000" offset notation
         dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
         return dt
     except ValueError:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
 
 def _parse_rule_id(rule: dict) -> int | None:
@@ -42,7 +43,9 @@ def _parse_rule_id(rule: dict) -> int | None:
         return None
 
 
-def normalize_event(event: dict, *, org_id: uuid.UUID, endpoint_id: uuid.UUID | None = None) -> AlertCreate:
+def normalize_event(
+    event: dict, *, org_id: uuid.UUID, endpoint_id: uuid.UUID | None = None
+) -> AlertCreate:
     """
     Convert a single Wazuh alert dict into an AlertCreate.
 

@@ -1,13 +1,12 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import select, and_
+from datetime import UTC, datetime
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.base import CRUDBase
 from app.models.alert import Alert, IncidentAlert
 from app.schemas.alert import AlertCreate
-
-
-
 
 
 class CRUDAlert(CRUDBase[Alert]):
@@ -27,9 +26,7 @@ class CRUDAlert(CRUDBase[Alert]):
         )
         return list(result.scalars().all())
 
-    async def get_by_incident(
-        self, db: AsyncSession, incident_id: uuid.UUID
-    ) -> list[Alert]:
+    async def get_by_incident(self, db: AsyncSession, incident_id: uuid.UUID) -> list[Alert]:
         result = await db.execute(
             select(Alert)
             .join(IncidentAlert, IncidentAlert.alert_id == Alert.id)
@@ -37,9 +34,7 @@ class CRUDAlert(CRUDBase[Alert]):
         )
         return list(result.scalars().all())
 
-    async def get_unacknowledged(
-        self, db: AsyncSession, organization_id: uuid.UUID
-    ) -> list[Alert]:
+    async def get_unacknowledged(self, db: AsyncSession, organization_id: uuid.UUID) -> list[Alert]:
         result = await db.execute(
             select(Alert).where(
                 and_(
@@ -51,9 +46,7 @@ class CRUDAlert(CRUDBase[Alert]):
         return list(result.scalars().all())
 
     async def get_by_wazuh_id(self, db: AsyncSession, wazuh_alert_id: str) -> Alert | None:
-        result = await db.execute(
-            select(Alert).where(Alert.wazuh_alert_id == wazuh_alert_id)
-        )
+        result = await db.execute(select(Alert).where(Alert.wazuh_alert_id == wazuh_alert_id))
         return result.scalar_one_or_none()
 
     async def create(self, db: AsyncSession, *, obj_in: AlertCreate) -> Alert:
@@ -76,12 +69,10 @@ class CRUDAlert(CRUDBase[Alert]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def acknowledge(
-        self, db: AsyncSession, *, alert: Alert, user_id: uuid.UUID
-    ) -> Alert:
+    async def acknowledge(self, db: AsyncSession, *, alert: Alert, user_id: uuid.UUID) -> Alert:
         alert.is_acknowledged = True
         alert.acknowledged_by = user_id
-        alert.acknowledged_at = datetime.now(timezone.utc)
+        alert.acknowledged_at = datetime.now(UTC)
         db.add(alert)
         await db.commit()
         await db.refresh(alert)
@@ -98,7 +89,7 @@ class CRUDAlert(CRUDBase[Alert]):
             alert_id=alert_id,
             incident_id=incident_id,
             linked_by=linked_by,
-            linked_at=datetime.now(timezone.utc),
+            linked_at=datetime.now(UTC),
         )
         db.add(link)
         await db.commit()

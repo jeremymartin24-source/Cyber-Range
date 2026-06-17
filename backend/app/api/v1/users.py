@@ -1,13 +1,15 @@
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.crud import organization as org_crud
+from app.crud import user as user_crud
 from app.database import get_db
-from app.schemas.user import UserCreate, UserUpdate, UserResponse
-from app.schemas.common import PaginatedResponse
-from app.crud import user as user_crud, organization as org_crud
 from app.dependencies.auth import get_current_user, require_admin, require_instructor
 from app.models.user import User, UserRole
+from app.schemas.common import PaginatedResponse
+from app.schemas.user import UserCreate, UserResponse, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -71,7 +73,9 @@ async def update_user(
     if current_user.role == UserRole.student and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     if current_user.role == UserRole.student and body.is_active is not None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot change active status")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Cannot change active status"
+        )
 
     db_user = await user_crud.get(db, id=user_id)
     if not db_user:
@@ -88,7 +92,9 @@ async def deactivate_user(
     db: AsyncSession = Depends(get_db),
 ):
     if current_user.id == user_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot deactivate yourself")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot deactivate yourself"
+        )
 
     db_user = await user_crud.get(db, id=user_id)
     if not db_user:

@@ -1,17 +1,19 @@
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.crud import incident as incident_crud
 from app.database import get_db
 from app.dependencies.auth import get_current_user, require_instructor
 from app.models.user import User
-from app.crud import incident as incident_crud
+from app.schemas.common import MessageResponse
 from app.schemas.incident import (
     IncidentCreate,
-    IncidentUpdate,
-    IncidentStatusUpdate,
     IncidentResponse,
+    IncidentStatusUpdate,
+    IncidentUpdate,
 )
-from app.schemas.common import MessageResponse
 from app.services import decision_service
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
@@ -95,9 +97,7 @@ async def update_status(
 
     old_status = inc.status
     try:
-        updated = await incident_crud.transition_status(
-            db, incident=inc, new_status=obj_in.status
-        )
+        updated = await incident_crud.transition_status(db, incident=inc, new_status=obj_in.status)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 

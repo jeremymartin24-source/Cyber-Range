@@ -1,27 +1,29 @@
 """
 Scenario lifecycle: loading from YAML, launching runs, processing injects.
 """
-import os
+
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.crud.scenario import scenario as scenario_crud, scenario_run as run_crud, inject as inject_crud
-from app.crud.incident import incident as incident_crud
 from app.crud.alert import alert as alert_crud
-from app.models.scenario import Scenario, ScenarioRun, Inject, InjectType
-from app.schemas.incident import IncidentCreate
-from app.schemas.alert import AlertCreate
+from app.crud.incident import incident as incident_crud
+from app.crud.scenario import inject as inject_crud
+from app.crud.scenario import scenario as scenario_crud
+from app.crud.scenario import scenario_run as run_crud
 from app.models.incident import IncidentSeverity
+from app.models.scenario import Inject, InjectType, Scenario, ScenarioRun
+from app.schemas.alert import AlertCreate
+from app.schemas.incident import IncidentCreate
 
 SCENARIOS_DIR = Path(__file__).parent.parent.parent / "scenarios"
 
 
 def _parse_yaml_file(path: Path) -> dict:
-    with open(path, "r") as f:
+    with open(path) as f:
         return yaml.safe_load(f)
 
 
@@ -49,9 +51,7 @@ async def list_scenario_files() -> list[str]:
     if not SCENARIOS_DIR.exists():
         return []
     return [
-        f.name
-        for f in SCENARIOS_DIR.iterdir()
-        if f.suffix in (".yaml", ".yml") and f.is_file()
+        f.name for f in SCENARIOS_DIR.iterdir() if f.suffix in (".yaml", ".yml") and f.is_file()
     ]
 
 
@@ -69,7 +69,7 @@ async def launch_scenario(
     if not sc:
         raise ValueError("Scenario not found")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Create the scenario run
     run = await run_crud.create_run(
@@ -139,7 +139,7 @@ async def process_inject(db: AsyncSession, *, inject: Inject) -> dict:
                     agent_id=payload.get("agent_id"),
                     agent_name=payload.get("agent_name"),
                     raw_data=payload.get("raw_data", {}),
-                    timestamp=datetime.now(timezone.utc),
+                    timestamp=datetime.now(UTC),
                     is_simulated=True,
                 ),
             )
@@ -162,11 +162,13 @@ async def process_inject(db: AsyncSession, *, inject: Inject) -> dict:
 async def _get_org_id_for_run(db: AsyncSession, run: ScenarioRun) -> uuid.UUID | None:
     if run.incident_id:
         from app.models.incident import Incident
+
         incident = await db.get(Incident, run.incident_id)
         if incident:
             return incident.organization_id
     # Fall back to getting org from course
     from app.models.course import Course
+
     course = await db.get(Course, run.course_id)
     if course:
         return course.organization_id

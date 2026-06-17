@@ -1,22 +1,23 @@
 """
 Campaign lifecycle: creating runs, advancing through scenario entries, syncing progress.
 """
+
 import uuid
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.crud.campaign import campaign as campaign_crud, campaign_run as run_crud, campaign_progress as progress_crud
-from app.crud.grade import grade as grade_crud
+from app.crud.campaign import campaign as campaign_crud
+from app.crud.campaign import campaign_progress as progress_crud
+from app.crud.campaign import campaign_run as run_crud
 from app.crud.student_decision import student_decision as decision_crud
-from app.models.campaign import CampaignRunStatus, CampaignRunProgressStatus
+from app.models.campaign import CampaignRunProgressStatus, CampaignRunStatus
 from app.models.scenario import ScenarioRunStatus
 from app.schemas.campaign import (
     CampaignRunReport,
     CampaignRunScenarioSummary,
 )
-from app.schemas.grade import GradeResponse
 from app.services import scenario_service
 
 
@@ -76,6 +77,7 @@ async def sync_progress(db: AsyncSession, campaign_run_id: uuid.UUID) -> None:
     for entry in entries:
         if entry.scenario_run_id and entry.status == CampaignRunProgressStatus.active:
             from app.models.scenario import ScenarioRun
+
             sr = await db.get(ScenarioRun, entry.scenario_run_id)
             if sr:
                 if sr.status == ScenarioRunStatus.completed:
@@ -130,7 +132,7 @@ async def launch_next_scenario(
 
     if campaign_run.status == CampaignRunStatus.draft:
         campaign_run.status = CampaignRunStatus.active
-        campaign_run.started_at = datetime.now(timezone.utc)
+        campaign_run.started_at = datetime.now(UTC)
         db.add(campaign_run)
 
     await db.commit()
@@ -170,7 +172,7 @@ async def generate_campaign_report(
     await sync_progress(db, campaign_run_id)
     progress_entries = await run_crud.get_progress(db, campaign_run_id)
 
-    from app.crud.scenario import scenario as scenario_crud, scenario_run as sc_run_crud
+    from app.crud.scenario import scenario as scenario_crud
     from app.models.scenario import ScenarioRun
 
     scenarios: list[CampaignRunScenarioSummary] = []
@@ -193,18 +195,20 @@ async def generate_campaign_report(
                     dec_count = len(decisions)
                     total_decisions += dec_count
 
-        scenarios.append(CampaignRunScenarioSummary(
-            order_index=prog.order_index,
-            campaign_scenario_entry_id=prog.campaign_scenario_entry_id,
-            scenario_id=entry.scenario_id if entry else uuid.UUID(int=0),
-            scenario_name=sc.name if sc else "Unknown",
-            scenario_slug=sc.slug if sc else "unknown",
-            is_optional=entry.is_optional if entry else False,
-            progress_status=prog.status.value,
-            scenario_run_id=prog.scenario_run_id,
-            scenario_run_status=sr_status,
-            decisions_count=dec_count,
-        ))
+        scenarios.append(
+            CampaignRunScenarioSummary(
+                order_index=prog.order_index,
+                campaign_scenario_entry_id=prog.campaign_scenario_entry_id,
+                scenario_id=entry.scenario_id if entry else uuid.UUID(int=0),
+                scenario_name=sc.name if sc else "Unknown",
+                scenario_slug=sc.slug if sc else "unknown",
+                is_optional=entry.is_optional if entry else False,
+                progress_status=prog.status.value,
+                scenario_run_id=prog.scenario_run_id,
+                scenario_run_status=sr_status,
+                decisions_count=dec_count,
+            )
+        )
 
     return CampaignRunReport(
         campaign_run_id=run.id,

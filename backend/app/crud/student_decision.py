@@ -1,8 +1,11 @@
 import uuid
+from datetime import UTC
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.base import CRUDBase
-from app.models.student_decision import StudentDecision, DecisionType
+from app.models.student_decision import DecisionType, StudentDecision
 
 
 class CRUDStudentDecision(CRUDBase[StudentDecision]):
@@ -16,9 +19,7 @@ class CRUDStudentDecision(CRUDBase[StudentDecision]):
         )
         return list(result.scalars().all())
 
-    async def get_by_user(
-        self, db: AsyncSession, user_id: uuid.UUID
-    ) -> list[StudentDecision]:
+    async def get_by_user(self, db: AsyncSession, user_id: uuid.UUID) -> list[StudentDecision]:
         result = await db.execute(
             select(StudentDecision)
             .where(StudentDecision.user_id == user_id)
@@ -49,7 +50,7 @@ class CRUDStudentDecision(CRUDBase[StudentDecision]):
         incident_id: uuid.UUID | None = None,
         rationale: str | None = None,
     ) -> StudentDecision:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         db_obj = StudentDecision(
             user_id=user_id,
@@ -57,7 +58,7 @@ class CRUDStudentDecision(CRUDBase[StudentDecision]):
             decision_type=decision_type,
             decision_data=decision_data,
             rationale=rationale,
-            decided_at=datetime.now(timezone.utc),
+            decided_at=datetime.now(UTC),
         )
         db.add(db_obj)
         await db.commit()

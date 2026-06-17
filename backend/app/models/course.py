@@ -1,9 +1,11 @@
+import enum
 import uuid
-from sqlalchemy import String, Boolean, Integer, SmallInteger, Text, ForeignKey, Enum as SAEnum
+
+from sqlalchemy import Boolean, ForeignKey, SmallInteger, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-import enum
-from app.models.base import Base, UUIDMixin, TimestampMixin
+
+from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
 class CourseStatus(str, enum.Enum):
@@ -15,7 +17,10 @@ class Course(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "courses"
 
     organization_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="RESTRICT"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     instructor_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
@@ -24,7 +29,9 @@ class Course(Base, UUIDMixin, TimestampMixin):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     semester: Mapped[str | None] = mapped_column(String(20), nullable=True)
     year: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
 
     organization: Mapped["Organization"] = relationship("Organization")
     instructor: Mapped["User"] = relationship("User", foreign_keys=[instructor_id])

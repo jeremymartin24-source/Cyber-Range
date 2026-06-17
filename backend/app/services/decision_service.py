@@ -2,8 +2,11 @@
 Records student decisions as side effects of API actions.
 Each public function is called from a route handler after the primary action succeeds.
 """
+
 import uuid
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.student_decision import student_decision as decision_crud
 from app.models.student_decision import DecisionType
 

@@ -1,13 +1,20 @@
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.crud import endpoint as endpoint_crud
 from app.database import get_db
 from app.dependencies.auth import get_current_user, require_instructor
-from app.models.user import User
 from app.models.endpoint import EndpointStatus
-from app.crud import endpoint as endpoint_crud
-from app.schemas.endpoint import EndpointCreate, EndpointUpdate, EndpointResponse, EndpointActionResponse
+from app.models.user import User
 from app.schemas.common import MessageResponse
+from app.schemas.endpoint import (
+    EndpointActionResponse,
+    EndpointCreate,
+    EndpointResponse,
+    EndpointUpdate,
+)
 from app.services import decision_service
 
 router = APIRouter(prefix="/endpoints", tags=["endpoints"])

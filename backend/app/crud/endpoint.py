@@ -1,6 +1,8 @@
 import uuid
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.base import CRUDBase
 from app.models.endpoint import Endpoint, EndpointStatus
 from app.schemas.endpoint import EndpointCreate, EndpointUpdate
@@ -22,12 +24,8 @@ class CRUDEndpoint(CRUDBase[Endpoint]):
         )
         return list(result.scalars().all())
 
-    async def get_by_wazuh_agent(
-        self, db: AsyncSession, wazuh_agent_id: str
-    ) -> Endpoint | None:
-        result = await db.execute(
-            select(Endpoint).where(Endpoint.wazuh_agent_id == wazuh_agent_id)
-        )
+    async def get_by_wazuh_agent(self, db: AsyncSession, wazuh_agent_id: str) -> Endpoint | None:
+        result = await db.execute(select(Endpoint).where(Endpoint.wazuh_agent_id == wazuh_agent_id))
         return result.scalar_one_or_none()
 
     async def create(

@@ -1,23 +1,30 @@
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import Organization, User
-from app.crud import course as course_crud, user as user_crud
+
+from app.crud import course as course_crud
+from app.crud import user as user_crud
+from app.models import Organization
+from app.models.user import UserRole
 from app.schemas.course import CourseCreate
 from app.schemas.user import UserCreate
-from app.models.user import UserRole
 
 
 @pytest.mark.asyncio
-async def test_instructor_can_create_course(client: AsyncClient, db: AsyncSession, test_org: Organization):
-    instructor = await user_crud.create(db, obj_in=UserCreate(
-        email="instructor_test@test.com",
-        password="TestPass123!",
-        first_name="John",
-        last_name="Doe",
-        role=UserRole.instructor,
-        organization_id=test_org.id,
-    ))
+async def test_instructor_can_create_course(
+    client: AsyncClient, db: AsyncSession, test_org: Organization
+):
+    instructor = await user_crud.create(
+        db,
+        obj_in=UserCreate(
+            email="instructor_test@test.com",
+            password="TestPass123!",
+            first_name="John",
+            last_name="Doe",
+            role=UserRole.instructor,
+            organization_id=test_org.id,
+        ),
+    )
     resp = await client.post(
         "/api/v1/auth/login",
         json={"email": "instructor_test@test.com", "password": "TestPass123!"},
@@ -41,7 +48,9 @@ async def test_instructor_can_create_course(client: AsyncClient, db: AsyncSessio
 
 
 @pytest.mark.asyncio
-async def test_student_cannot_create_course(client: AsyncClient, student_token: str, test_org: Organization):
+async def test_student_cannot_create_course(
+    client: AsyncClient, student_token: str, test_org: Organization
+):
     resp = await client.post(
         "/api/v1/courses",
         json={
@@ -54,21 +63,30 @@ async def test_student_cannot_create_course(client: AsyncClient, student_token: 
 
 
 @pytest.mark.asyncio
-async def test_admin_can_list_all_courses(client: AsyncClient, admin_token: str, test_org: Organization, db: AsyncSession):
-    instructor = await user_crud.create(db, obj_in=UserCreate(
-        email="instructor_list@test.com",
-        password="TestPass123!",
-        first_name="Jane",
-        last_name="Smith",
-        role=UserRole.instructor,
-        organization_id=test_org.id,
-    ))
-    await course_crud.create(db, obj_in=CourseCreate(
-        organization_id=test_org.id,
-        name="Listed Course",
-        semester="Spring",
-        year=2025,
-    ), instructor_id=instructor.id)
+async def test_admin_can_list_all_courses(
+    client: AsyncClient, admin_token: str, test_org: Organization, db: AsyncSession
+):
+    instructor = await user_crud.create(
+        db,
+        obj_in=UserCreate(
+            email="instructor_list@test.com",
+            password="TestPass123!",
+            first_name="Jane",
+            last_name="Smith",
+            role=UserRole.instructor,
+            organization_id=test_org.id,
+        ),
+    )
+    await course_crud.create(
+        db,
+        obj_in=CourseCreate(
+            organization_id=test_org.id,
+            name="Listed Course",
+            semester="Spring",
+            year=2025,
+        ),
+        instructor_id=instructor.id,
+    )
     resp = await client.get(
         "/api/v1/courses",
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -80,26 +98,36 @@ async def test_admin_can_list_all_courses(client: AsyncClient, admin_token: str,
 
 @pytest.mark.asyncio
 async def test_enroll_student(client: AsyncClient, db: AsyncSession, test_org: Organization):
-    instructor = await user_crud.create(db, obj_in=UserCreate(
-        email="instructor_enroll@test.com",
-        password="TestPass123!",
-        first_name="Bob",
-        last_name="Lee",
-        role=UserRole.instructor,
-        organization_id=test_org.id,
-    ))
-    student = await user_crud.create(db, obj_in=UserCreate(
-        email="student_enroll@test.com",
-        password="TestPass123!",
-        first_name="Alice",
-        last_name="Green",
-        role=UserRole.student,
-        organization_id=test_org.id,
-    ))
-    course = await course_crud.create(db, obj_in=CourseCreate(
-        organization_id=test_org.id,
-        name="Enrollment Test Course",
-    ), instructor_id=instructor.id)
+    instructor = await user_crud.create(
+        db,
+        obj_in=UserCreate(
+            email="instructor_enroll@test.com",
+            password="TestPass123!",
+            first_name="Bob",
+            last_name="Lee",
+            role=UserRole.instructor,
+            organization_id=test_org.id,
+        ),
+    )
+    student = await user_crud.create(
+        db,
+        obj_in=UserCreate(
+            email="student_enroll@test.com",
+            password="TestPass123!",
+            first_name="Alice",
+            last_name="Green",
+            role=UserRole.student,
+            organization_id=test_org.id,
+        ),
+    )
+    course = await course_crud.create(
+        db,
+        obj_in=CourseCreate(
+            organization_id=test_org.id,
+            name="Enrollment Test Course",
+        ),
+        instructor_id=instructor.id,
+    )
 
     login_resp = await client.post(
         "/api/v1/auth/login",
@@ -121,6 +149,7 @@ async def test_enroll_student(client: AsyncClient, db: AsyncSession, test_org: O
 @pytest.mark.asyncio
 async def test_get_course_not_found(client: AsyncClient, admin_token: str):
     import uuid
+
     fake_id = uuid.uuid4()
     resp = await client.get(
         f"/api/v1/courses/{fake_id}",

@@ -5,8 +5,10 @@ Requires WAZUH_URL, WAZUH_USER, WAZUH_PASSWORD in config.
 All methods raise WazuhUnavailable when the server can't be reached,
 so callers can gracefully degrade rather than crash.
 """
+
 import httpx
 import structlog
+
 from app.config import settings
 
 log = structlog.get_logger(__name__)

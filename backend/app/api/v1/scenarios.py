@@ -1,24 +1,29 @@
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.crud import inject as inject_crud
+from app.crud import scenario as scenario_crud
+from app.crud import scenario_run as run_crud
 from app.database import get_db
-from app.dependencies.auth import get_current_user, require_instructor, require_admin
+from app.dependencies.auth import get_current_user, require_admin, require_instructor
 from app.models.user import User
-from app.crud import scenario as scenario_crud, scenario_run as run_crud, inject as inject_crud
+from app.schemas.common import MessageResponse
 from app.schemas.scenario import (
-    ScenarioResponse,
+    InjectResponse,
     ScenarioImportRequest,
     ScenarioLaunchRequest,
+    ScenarioResponse,
     ScenarioRunResponse,
-    InjectResponse,
 )
-from app.schemas.common import MessageResponse
 from app.services import scenario_service
 
 router = APIRouter(prefix="/scenarios", tags=["scenarios"])
 
 
 # --- Scenario library ---
+
 
 @router.get("", response_model=list[ScenarioResponse])
 async def list_scenarios(
@@ -78,7 +83,10 @@ async def delete_scenario(
 
 # --- Scenario runs ---
 
-@router.post("/{scenario_id}/launch", response_model=ScenarioRunResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/{scenario_id}/launch", response_model=ScenarioRunResponse, status_code=status.HTTP_201_CREATED
+)
 async def launch_scenario(
     scenario_id: uuid.UUID,
     obj_in: ScenarioLaunchRequest,

@@ -1,11 +1,14 @@
 import pytest
 from httpx import AsyncClient
+
 from app.models.user import User
 
 
 @pytest.mark.asyncio
 async def test_login_success(client: AsyncClient, test_admin: User):
-    resp = await client.post("/api/v1/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"})
+    resp = await client.post(
+        "/api/v1/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"}
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert "access_token" in data
@@ -15,13 +18,17 @@ async def test_login_success(client: AsyncClient, test_admin: User):
 
 @pytest.mark.asyncio
 async def test_login_wrong_password(client: AsyncClient, test_admin: User):
-    resp = await client.post("/api/v1/auth/login", json={"email": "admin@test.com", "password": "wrongpassword"})
+    resp = await client.post(
+        "/api/v1/auth/login", json={"email": "admin@test.com", "password": "wrongpassword"}
+    )
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_login_unknown_user(client: AsyncClient):
-    resp = await client.post("/api/v1/auth/login", json={"email": "nobody@test.com", "password": "pass"})
+    resp = await client.post(
+        "/api/v1/auth/login", json={"email": "nobody@test.com", "password": "pass"}
+    )
     assert resp.status_code == 401
 
 
@@ -40,7 +47,9 @@ async def test_get_me_unauthenticated(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_logout(client: AsyncClient, admin_token: str):
-    resp = await client.post("/api/v1/auth/logout", headers={"Authorization": f"Bearer {admin_token}"})
+    resp = await client.post(
+        "/api/v1/auth/logout", headers={"Authorization": f"Bearer {admin_token}"}
+    )
     assert resp.status_code == 200
 
 
@@ -62,7 +71,9 @@ async def test_change_password(client: AsyncClient, test_student: User, student_
 
 
 @pytest.mark.asyncio
-async def test_change_password_wrong_current(client: AsyncClient, test_admin: User, admin_token: str):
+async def test_change_password_wrong_current(
+    client: AsyncClient, test_admin: User, admin_token: str
+):
     resp = await client.put(
         "/api/v1/auth/me/password",
         json={"current_password": "wrongpass", "new_password": "NewPass456!"},

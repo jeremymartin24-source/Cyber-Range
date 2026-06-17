@@ -1,16 +1,16 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.base import CRUDBase
 from app.models.grade import StudentGrade
 from app.schemas.grade import GradeCreate, GradeUpdate
 
 
 class CRUDGrade(CRUDBase[StudentGrade]):
-    async def get_by_run(
-        self, db: AsyncSession, scenario_run_id: uuid.UUID
-    ) -> list[StudentGrade]:
+    async def get_by_run(self, db: AsyncSession, scenario_run_id: uuid.UUID) -> list[StudentGrade]:
         result = await db.execute(
             select(StudentGrade)
             .where(StudentGrade.scenario_run_id == scenario_run_id)
@@ -32,9 +32,7 @@ class CRUDGrade(CRUDBase[StudentGrade]):
         )
         return result.scalar_one_or_none()
 
-    async def get_by_course(
-        self, db: AsyncSession, course_id: uuid.UUID
-    ) -> list[StudentGrade]:
+    async def get_by_course(self, db: AsyncSession, course_id: uuid.UUID) -> list[StudentGrade]:
         result = await db.execute(
             select(StudentGrade)
             .where(StudentGrade.course_id == course_id)
@@ -76,7 +74,7 @@ class CRUDGrade(CRUDBase[StudentGrade]):
             max_score=obj_in.max_score,
             rubric=obj_in.rubric,
             feedback=obj_in.feedback,
-            graded_at=datetime.now(timezone.utc),
+            graded_at=datetime.now(UTC),
         )
         db.add(db_obj)
         await db.flush()
@@ -93,7 +91,7 @@ class CRUDGrade(CRUDBase[StudentGrade]):
         data = obj_in.model_dump(exclude_unset=True, exclude_none=True)
         for field, value in data.items():
             setattr(grade, field, value)
-        grade.graded_at = datetime.now(timezone.utc)
+        grade.graded_at = datetime.now(UTC)
         db.add(grade)
         await db.flush()
         await db.refresh(grade)

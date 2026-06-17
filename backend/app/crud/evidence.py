@@ -1,15 +1,15 @@
 import uuid
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.base import CRUDBase
 from app.models.evidence import Evidence
 from app.schemas.evidence import EvidenceCreate, EvidenceUpdate
 
 
 class CRUDEvidence(CRUDBase[Evidence]):
-    async def get_by_incident(
-        self, db: AsyncSession, incident_id: uuid.UUID
-    ) -> list[Evidence]:
+    async def get_by_incident(self, db: AsyncSession, incident_id: uuid.UUID) -> list[Evidence]:
         result = await db.execute(
             select(Evidence)
             .where(Evidence.incident_id == incident_id)
@@ -17,9 +17,7 @@ class CRUDEvidence(CRUDBase[Evidence]):
         )
         return list(result.scalars().all())
 
-    async def get_key_evidence(
-        self, db: AsyncSession, incident_id: uuid.UUID
-    ) -> list[Evidence]:
+    async def get_key_evidence(self, db: AsyncSession, incident_id: uuid.UUID) -> list[Evidence]:
         result = await db.execute(
             select(Evidence).where(
                 Evidence.incident_id == incident_id,

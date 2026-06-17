@@ -1,4 +1,6 @@
 import asyncio
+from datetime import UTC
+
 from app.workers.celery_app import celery_app
 
 
@@ -8,8 +10,9 @@ def process_pending_injects() -> dict:
     Beat task: fire any injects whose scheduled_at has passed and status is pending.
     Runs every 30 seconds via celery beat.
     """
+    from app.crud.scenario import inject as inject_crud
+    from app.crud.scenario import scenario_run as run_crud
     from app.database import AsyncSessionLocal
-    from app.crud.scenario import inject as inject_crud, scenario_run as run_crud
     from app.services.scenario_service import process_inject
 
     async def _run() -> dict:
@@ -44,15 +47,17 @@ def poll_wazuh_alerts() -> dict:
     Runs every WAZUH_POLL_INTERVAL_SECONDS seconds (default 60) via celery beat.
     """
     from app.config import settings
+
     if not settings.wazuh_enabled:
         return {"skipped": True, "reason": "Wazuh not configured"}
 
-    from app.database import AsyncSessionLocal
+    import structlog
+
     from app.crud.alert import alert as alert_crud
     from app.crud.organization import organization as org_crud
-    from app.integrations.wazuh.client import wazuh_client, WazuhUnavailable
+    from app.database import AsyncSessionLocal
+    from app.integrations.wazuh.client import WazuhUnavailable, wazuh_client
     from app.integrations.wazuh.normalizer import normalize_batch
-    import structlog
 
     log = structlog.get_logger(__name__)
 
@@ -66,8 +71,9 @@ def poll_wazuh_alerts() -> dict:
             duplicate_total = 0
 
             # Poll alerts (last 5 minutes worth, relying on dedup for idempotency)
-            from datetime import datetime, timezone, timedelta
-            cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
+            from datetime import datetime, timedelta
+
+            cutoff = datetime.now(UTC) - timedelta(minutes=5)
             q = f"timestamp>{cutoff.strftime('%Y-%m-%dT%H:%M:%S')}"
 
             events = await wazuh_client.get_alerts(q=q, limit=500)
@@ -78,14 +84,18 @@ def poll_wazuh_alerts() -> dict:
                 orgs = await org_crud.list_all(db)
                 for org in orgs:
                     from sqlalchemy import select
+
                     from app.models.endpoint import Endpoint
+
                     result = await db.execute(
                         select(Endpoint.hostname, Endpoint.id).where(
                             Endpoint.organization_id == org.id
                         )
                     )
                     agent_map = {row.hostname: row.id for row in result.all()}
-                    normalized = normalize_batch(events, org_id=org.id, agent_endpoint_map=agent_map)
+                    normalized = normalize_batch(
+                        events, org_id=org.id, agent_endpoint_map=agent_map
+                    )
 
                     for alert_in in normalized:
                         if alert_in.wazuh_alert_id:

@@ -1,20 +1,21 @@
 from fastapi import APIRouter
+
 from app.api.v1 import (
-    auth,
-    users,
-    organizations,
-    courses,
-    teams,
-    endpoints,
-    incidents,
     alerts,
-    evidence,
-    case_notes,
-    decisions,
-    scenarios,
-    wazuh,
-    reports,
+    auth,
     campaigns,
+    case_notes,
+    courses,
+    decisions,
+    endpoints,
+    evidence,
+    incidents,
+    organizations,
+    reports,
+    scenarios,
+    teams,
+    users,
+    wazuh,
 )
 
 router = APIRouter(prefix="/api/v1")

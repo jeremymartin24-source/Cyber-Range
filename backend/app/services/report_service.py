@@ -1,25 +1,26 @@
 """
 Generate scenario run reports and student performance summaries.
 """
+
 import uuid
 from collections import Counter
-from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.grade import grade as grade_crud
-from app.crud.scenario import scenario as scenario_crud, scenario_run as run_crud, inject as inject_crud
+from app.crud.scenario import inject as inject_crud
+from app.crud.scenario import scenario as scenario_crud
+from app.crud.scenario import scenario_run as run_crud
 from app.crud.student_decision import student_decision as decision_crud
 from app.crud.user import user as user_crud
-from app.models.scenario import ScenarioRunStatus, InjectStatus
 from app.schemas.grade import (
-    GradeResponse,
-    TimelineEvent,
-    InjectStats,
-    DecisionStats,
-    ScenarioRunReport,
     CourseLeaderboardEntry,
+    DecisionStats,
+    GradeResponse,
+    InjectStats,
+    ScenarioRunReport,
     StudentPerformanceReport,
+    TimelineEvent,
 )
 
 
@@ -40,33 +41,37 @@ async def generate_run_report(db: AsyncSession, run_id: uuid.UUID) -> ScenarioRu
 
     for inj in injects:
         occurred = inj.fired_at or inj.scheduled_at
-        timeline.append(TimelineEvent(
-            event_type="inject",
-            occurred_at=occurred,
-            title=f"[{inj.inject_type.upper()}] {inj.inject_slug}",
-            detail={
-                "inject_type": inj.inject_type.value,
-                "inject_slug": inj.inject_slug,
-                "status": inj.status.value,
-                "scheduled_at": inj.scheduled_at.isoformat(),
-                "payload": inj.payload,
-                "result": inj.result,
-            },
-        ))
+        timeline.append(
+            TimelineEvent(
+                event_type="inject",
+                occurred_at=occurred,
+                title=f"[{inj.inject_type.upper()}] {inj.inject_slug}",
+                detail={
+                    "inject_type": inj.inject_type.value,
+                    "inject_slug": inj.inject_slug,
+                    "status": inj.status.value,
+                    "scheduled_at": inj.scheduled_at.isoformat(),
+                    "payload": inj.payload,
+                    "result": inj.result,
+                },
+            )
+        )
 
     for dec in decisions:
-        timeline.append(TimelineEvent(
-            event_type="decision",
-            occurred_at=dec.decided_at,
-            title=f"[DECISION] {dec.decision_type.value}",
-            detail={
-                "decision_type": dec.decision_type.value,
-                "user_id": str(dec.user_id),
-                "decision_data": dec.decision_data,
-                "rationale": dec.rationale,
-                "auto_score": float(dec.auto_score) if dec.auto_score is not None else None,
-            },
-        ))
+        timeline.append(
+            TimelineEvent(
+                event_type="decision",
+                occurred_at=dec.decided_at,
+                title=f"[DECISION] {dec.decision_type.value}",
+                detail={
+                    "decision_type": dec.decision_type.value,
+                    "user_id": str(dec.user_id),
+                    "decision_data": dec.decision_data,
+                    "rationale": dec.rationale,
+                    "auto_score": float(dec.auto_score) if dec.auto_score is not None else None,
+                },
+            )
+        )
 
     timeline.sort(key=lambda e: e.occurred_at)
 
@@ -141,15 +146,17 @@ async def get_course_leaderboard(
                 dec = await decision_crud.get_by_incident_and_user(db, run.incident_id, student_id)
                 total_decisions += len(dec)
 
-        entries.append(CourseLeaderboardEntry(
-            student_id=student_id,
-            student_name=name,
-            student_email=email,
-            runs_graded=len(grades),
-            average_score=avg,
-            highest_score=highest,
-            total_decisions=total_decisions,
-        ))
+        entries.append(
+            CourseLeaderboardEntry(
+                student_id=student_id,
+                student_name=name,
+                student_email=email,
+                runs_graded=len(grades),
+                average_score=avg,
+                highest_score=highest,
+                total_decisions=total_decisions,
+            )
+        )
 
     entries.sort(key=lambda e: e.average_score, reverse=True)
     return entries
@@ -170,10 +177,10 @@ async def get_student_performance(
 
     # Count distinct scenario runs in course where this student has decisions
     from sqlalchemy import select
+
     from app.models.scenario import ScenarioRun
-    result = await db.execute(
-        select(ScenarioRun).where(ScenarioRun.course_id == course_id)
-    )
+
+    result = await db.execute(select(ScenarioRun).where(ScenarioRun.course_id == course_id))
     all_runs = list(result.scalars().all())
     participated = 0
     for run in all_runs:

@@ -1,10 +1,11 @@
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import Organization, User
+
 from app.crud import incident as incident_crud
+from app.models import Organization
+from app.models.incident import IncidentSeverity
 from app.schemas.incident import IncidentCreate
-from app.models.incident import IncidentSeverity, IncidentStatus
 
 
 @pytest.mark.asyncio
@@ -28,12 +29,18 @@ async def test_create_incident(client: AsyncClient, admin_token: str, test_org: 
 
 
 @pytest.mark.asyncio
-async def test_list_incidents(client: AsyncClient, admin_token: str, test_org: Organization, db: AsyncSession):
-    await incident_crud.create(db, obj_in=IncidentCreate(
-        organization_id=test_org.id,
-        title="Test Incident",
-        severity=IncidentSeverity.medium,
-    ), created_by=test_org.id)
+async def test_list_incidents(
+    client: AsyncClient, admin_token: str, test_org: Organization, db: AsyncSession
+):
+    await incident_crud.create(
+        db,
+        obj_in=IncidentCreate(
+            organization_id=test_org.id,
+            title="Test Incident",
+            severity=IncidentSeverity.medium,
+        ),
+        created_by=test_org.id,
+    )
     resp = await client.get(
         "/api/v1/incidents",
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -44,12 +51,18 @@ async def test_list_incidents(client: AsyncClient, admin_token: str, test_org: O
 
 
 @pytest.mark.asyncio
-async def test_get_incident(client: AsyncClient, admin_token: str, test_org: Organization, db: AsyncSession):
-    inc = await incident_crud.create(db, obj_in=IncidentCreate(
-        organization_id=test_org.id,
-        title="Get Test Incident",
-        severity=IncidentSeverity.low,
-    ), created_by=test_org.id)
+async def test_get_incident(
+    client: AsyncClient, admin_token: str, test_org: Organization, db: AsyncSession
+):
+    inc = await incident_crud.create(
+        db,
+        obj_in=IncidentCreate(
+            organization_id=test_org.id,
+            title="Get Test Incident",
+            severity=IncidentSeverity.low,
+        ),
+        created_by=test_org.id,
+    )
     resp = await client.get(
         f"/api/v1/incidents/{inc.id}",
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -59,12 +72,18 @@ async def test_get_incident(client: AsyncClient, admin_token: str, test_org: Org
 
 
 @pytest.mark.asyncio
-async def test_update_incident_severity(client: AsyncClient, admin_token: str, test_org: Organization, db: AsyncSession):
-    inc = await incident_crud.create(db, obj_in=IncidentCreate(
-        organization_id=test_org.id,
-        title="Severity Change Test",
-        severity=IncidentSeverity.low,
-    ), created_by=test_org.id)
+async def test_update_incident_severity(
+    client: AsyncClient, admin_token: str, test_org: Organization, db: AsyncSession
+):
+    inc = await incident_crud.create(
+        db,
+        obj_in=IncidentCreate(
+            organization_id=test_org.id,
+            title="Severity Change Test",
+            severity=IncidentSeverity.low,
+        ),
+        created_by=test_org.id,
+    )
     resp = await client.patch(
         f"/api/v1/incidents/{inc.id}",
         json={"severity": "critical"},
@@ -75,12 +94,18 @@ async def test_update_incident_severity(client: AsyncClient, admin_token: str, t
 
 
 @pytest.mark.asyncio
-async def test_incident_status_transition(client: AsyncClient, admin_token: str, test_org: Organization, db: AsyncSession):
-    inc = await incident_crud.create(db, obj_in=IncidentCreate(
-        organization_id=test_org.id,
-        title="Status Transition Test",
-        severity=IncidentSeverity.medium,
-    ), created_by=test_org.id)
+async def test_incident_status_transition(
+    client: AsyncClient, admin_token: str, test_org: Organization, db: AsyncSession
+):
+    inc = await incident_crud.create(
+        db,
+        obj_in=IncidentCreate(
+            organization_id=test_org.id,
+            title="Status Transition Test",
+            severity=IncidentSeverity.medium,
+        ),
+        created_by=test_org.id,
+    )
     resp = await client.post(
         f"/api/v1/incidents/{inc.id}/status",
         json={"status": "investigating", "rationale": "Starting investigation"},
@@ -91,12 +116,18 @@ async def test_incident_status_transition(client: AsyncClient, admin_token: str,
 
 
 @pytest.mark.asyncio
-async def test_invalid_status_transition(client: AsyncClient, admin_token: str, test_org: Organization, db: AsyncSession):
-    inc = await incident_crud.create(db, obj_in=IncidentCreate(
-        organization_id=test_org.id,
-        title="Invalid Transition Test",
-        severity=IncidentSeverity.medium,
-    ), created_by=test_org.id)
+async def test_invalid_status_transition(
+    client: AsyncClient, admin_token: str, test_org: Organization, db: AsyncSession
+):
+    inc = await incident_crud.create(
+        db,
+        obj_in=IncidentCreate(
+            organization_id=test_org.id,
+            title="Invalid Transition Test",
+            severity=IncidentSeverity.medium,
+        ),
+        created_by=test_org.id,
+    )
     # Cannot go from open directly to resolved
     resp = await client.post(
         f"/api/v1/incidents/{inc.id}/status",
@@ -109,6 +140,7 @@ async def test_invalid_status_transition(client: AsyncClient, admin_token: str, 
 @pytest.mark.asyncio
 async def test_incident_not_found(client: AsyncClient, admin_token: str):
     import uuid
+
     fake_id = uuid.uuid4()
     resp = await client.get(
         f"/api/v1/incidents/{fake_id}",

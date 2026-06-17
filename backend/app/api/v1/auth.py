@@ -1,18 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, Cookie, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from jose import JWTError
 import uuid
 
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
+from jose import JWTError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.config import settings
-from app.database import get_db
-from app.rate_limit import limiter
-from app.schemas.auth import LoginRequest, TokenResponse, RefreshResponse
-from app.schemas.user import UserResponse, PasswordChange
 from app.crud import user as user_crud
-from app.services import auth_service
-from app.services import lockout_service
-from app.dependencies.auth import get_current_user, _extract_token
+from app.database import get_db
+from app.dependencies.auth import _extract_token, get_current_user
 from app.models.user import User
+from app.rate_limit import limiter
+from app.schemas.auth import LoginRequest, RefreshResponse, TokenResponse
+from app.schemas.user import PasswordChange, UserResponse
+from app.services import auth_service, lockout_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -87,15 +87,21 @@ async def refresh(
     db: AsyncSession = Depends(get_db),
 ):
     if not refresh_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing"
+        )
 
     try:
         payload = auth_service.decode_token(refresh_token)
         if payload.get("type") != auth_service.TOKEN_TYPE_REFRESH:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
+            )
         user_id = uuid.UUID(payload["sub"])
     except (JWTError, ValueError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
 
     db_user = await user_crud.get(db, id=user_id)
     if not db_user or not db_user.is_active:
@@ -119,6 +125,8 @@ async def change_password(
     db: AsyncSession = Depends(get_db),
 ):
     if not user_crud.verify_password(body.current_password, current_user.password_hash):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect"
+        )
     await user_crud.update_password(db, obj=current_user, new_password=body.new_password)
     return {"message": "Password updated successfully"}

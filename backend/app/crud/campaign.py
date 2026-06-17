@@ -1,13 +1,24 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.base import CRUDBase
 from app.models.campaign import (
-    Campaign, CampaignScenarioEntry, CampaignRun, CampaignRunProgress,
-    CampaignRunStatus, CampaignRunProgressStatus,
+    Campaign,
+    CampaignRun,
+    CampaignRunProgress,
+    CampaignRunProgressStatus,
+    CampaignRunStatus,
+    CampaignScenarioEntry,
 )
-from app.schemas.campaign import CampaignCreate, CampaignUpdate, CampaignScenarioEntryCreate, CampaignScenarioEntryUpdate
+from app.schemas.campaign import (
+    CampaignCreate,
+    CampaignScenarioEntryCreate,
+    CampaignScenarioEntryUpdate,
+    CampaignUpdate,
+)
 
 
 class CRUDCampaign(CRUDBase[Campaign]):
@@ -21,7 +32,9 @@ class CRUDCampaign(CRUDBase[Campaign]):
         )
         return list(result.scalars().all())
 
-    async def create(self, db: AsyncSession, *, obj_in: CampaignCreate, created_by: uuid.UUID) -> Campaign:
+    async def create(
+        self, db: AsyncSession, *, obj_in: CampaignCreate, created_by: uuid.UUID
+    ) -> Campaign:
         db_obj = Campaign(
             slug=obj_in.slug,
             name=obj_in.name,
@@ -33,7 +46,9 @@ class CRUDCampaign(CRUDBase[Campaign]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def update(self, db: AsyncSession, *, campaign: Campaign, obj_in: CampaignUpdate) -> Campaign:
+    async def update(
+        self, db: AsyncSession, *, campaign: Campaign, obj_in: CampaignUpdate
+    ) -> Campaign:
         data = obj_in.model_dump(exclude_unset=True)
         for field, value in data.items():
             setattr(campaign, field, value)
@@ -42,7 +57,9 @@ class CRUDCampaign(CRUDBase[Campaign]):
         await db.refresh(campaign)
         return campaign
 
-    async def get_entries(self, db: AsyncSession, campaign_id: uuid.UUID) -> list[CampaignScenarioEntry]:
+    async def get_entries(
+        self, db: AsyncSession, campaign_id: uuid.UUID
+    ) -> list[CampaignScenarioEntry]:
         result = await db.execute(
             select(CampaignScenarioEntry)
             .where(CampaignScenarioEntry.campaign_id == campaign_id)
@@ -70,7 +87,9 @@ class CRUDCampaign(CRUDBase[Campaign]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def get_entry(self, db: AsyncSession, entry_id: uuid.UUID) -> CampaignScenarioEntry | None:
+    async def get_entry(
+        self, db: AsyncSession, entry_id: uuid.UUID
+    ) -> CampaignScenarioEntry | None:
         result = await db.execute(
             select(CampaignScenarioEntry).where(CampaignScenarioEntry.id == entry_id)
         )
@@ -148,7 +167,7 @@ class CRUDCampaignRun(CRUDBase[CampaignRun]):
 
     async def complete(self, db: AsyncSession, *, run: CampaignRun) -> CampaignRun:
         run.status = CampaignRunStatus.completed
-        run.completed_at = datetime.now(timezone.utc)
+        run.completed_at = datetime.now(UTC)
         db.add(run)
         await db.flush()
         await db.refresh(run)
@@ -156,7 +175,7 @@ class CRUDCampaignRun(CRUDBase[CampaignRun]):
 
     async def abort(self, db: AsyncSession, *, run: CampaignRun) -> CampaignRun:
         run.status = CampaignRunStatus.aborted
-        run.completed_at = datetime.now(timezone.utc)
+        run.completed_at = datetime.now(UTC)
         db.add(run)
         await db.flush()
         await db.refresh(run)

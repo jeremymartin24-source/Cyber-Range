@@ -1,17 +1,16 @@
 import uuid
+
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.crud import course as course_crud
 from app.models import Organization, User
-from app.crud import course as course_crud, user as user_crud
 from app.schemas.course import CourseCreate
-from app.schemas.user import UserCreate
-from app.models.user import UserRole
-
 
 # ── Shared fixtures ────────────────────────────────────────────────────────────
+
 
 @pytest_asyncio.fixture
 async def scenario_course(db: AsyncSession, test_org: Organization, test_instructor: User):
@@ -29,6 +28,7 @@ async def scenario_course(db: AsyncSession, test_org: Organization, test_instruc
 
 
 # ── Scenario library ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_scenario_files_admin(client: AsyncClient, admin_token: str):
@@ -148,6 +148,7 @@ async def test_get_scenario_not_found(client: AsyncClient, admin_token: str):
 
 # ── Launch & run management ────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_launch_scenario(
     client: AsyncClient,
@@ -214,6 +215,7 @@ async def test_student_cannot_launch_scenario(
 
 
 # ── Scenario runs ──────────────────────────────────────────────────────────────
+
 
 @pytest_asyncio.fixture
 async def active_run(client: AsyncClient, instructor_token: str, admin_token: str, scenario_course):
@@ -294,7 +296,9 @@ async def test_fire_inject(client: AsyncClient, instructor_token: str, active_ru
 
 
 @pytest.mark.asyncio
-async def test_fire_inject_already_fired(client: AsyncClient, instructor_token: str, active_run: dict):
+async def test_fire_inject_already_fired(
+    client: AsyncClient, instructor_token: str, active_run: dict
+):
     run_id = active_run["id"]
     injects_resp = await client.get(
         f"/api/v1/scenario-runs/{run_id}/injects",
@@ -332,7 +336,9 @@ async def test_complete_run(client: AsyncClient, instructor_token: str, active_r
 
 
 @pytest.mark.asyncio
-async def test_abort_run(client: AsyncClient, instructor_token: str, admin_token: str, scenario_course):
+async def test_abort_run(
+    client: AsyncClient, instructor_token: str, admin_token: str, scenario_course
+):
     # Create a fresh run to abort
     import_resp = await client.post(
         "/api/v1/scenarios/import",
@@ -359,7 +365,9 @@ async def test_abort_run(client: AsyncClient, instructor_token: str, admin_token
 
 
 @pytest.mark.asyncio
-async def test_abort_completed_run_fails(client: AsyncClient, instructor_token: str, active_run: dict):
+async def test_abort_completed_run_fails(
+    client: AsyncClient, instructor_token: str, active_run: dict
+):
     run_id = active_run["id"]
     # Complete the run first
     await client.post(

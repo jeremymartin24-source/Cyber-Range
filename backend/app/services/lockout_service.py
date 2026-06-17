@@ -3,11 +3,13 @@ Brute-force lockout: tracks consecutive failed logins per email in Redis.
 After MAX_ATTEMPTS failures within the window, subsequent attempts are blocked
 for LOCKOUT_SECONDS regardless of password correctness.
 """
+
 import redis.asyncio as aioredis
+
 from app.config import settings
 
 MAX_ATTEMPTS = 5
-WINDOW_SECONDS = 900   # 15-minute sliding window for failure count
+WINDOW_SECONDS = 900  # 15-minute sliding window for failure count
 LOCKOUT_SECONDS = 900  # same window: lock out for 15 minutes
 
 _KEY = "lockout:failed:{}"

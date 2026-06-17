@@ -1,10 +1,13 @@
+import enum
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Text, ForeignKey, Enum as SAEnum, Integer
+
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-import enum
-from app.models.base import Base, UUIDMixin, TimestampMixin
+
+from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
 class IncidentSeverity(str, enum.Enum):
@@ -37,10 +40,15 @@ class Incident(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "incidents"
 
     organization_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="RESTRICT"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     # scenario_instance_id will be added in Phase 3
-    incident_number: Mapped[str] = mapped_column(String(30), nullable=False, unique=True, index=True)
+    incident_number: Mapped[str] = mapped_column(
+        String(30), nullable=False, unique=True, index=True
+    )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     severity: Mapped[IncidentSeverity] = mapped_column(
@@ -74,4 +82,6 @@ class Incident(Base, UUIDMixin, TimestampMixin):
     alerts: Mapped[list["IncidentAlert"]] = relationship("IncidentAlert", back_populates="incident")
     evidence: Mapped[list["Evidence"]] = relationship("Evidence", back_populates="incident")
     notes: Mapped[list["CaseNote"]] = relationship("CaseNote", back_populates="incident")
-    decisions: Mapped[list["StudentDecision"]] = relationship("StudentDecision", back_populates="incident")
+    decisions: Mapped[list["StudentDecision"]] = relationship(
+        "StudentDecision", back_populates="incident"
+    )

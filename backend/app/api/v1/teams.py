@@ -1,18 +1,21 @@
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.crud import team as team_crud
+from app.crud import team_member as team_member_crud
 from app.database import get_db
 from app.dependencies.auth import get_current_user, require_instructor
 from app.models.user import User, UserRole
-from app.crud import team as team_crud, team_member as team_member_crud
+from app.schemas.common import MessageResponse
 from app.schemas.team import (
     TeamCreate,
-    TeamUpdate,
     TeamMemberAdd,
     TeamMemberResponse,
     TeamResponse,
+    TeamUpdate,
 )
-from app.schemas.common import MessageResponse
 
 router = APIRouter(prefix="/teams", tags=["teams"])
 
@@ -95,7 +98,9 @@ async def list_members(
     return await team_member_crud.get_by_team(db, team_id)
 
 
-@router.post("/{team_id}/members", response_model=TeamMemberResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{team_id}/members", response_model=TeamMemberResponse, status_code=status.HTTP_201_CREATED
+)
 async def add_member(
     team_id: uuid.UUID,
     obj_in: TeamMemberAdd,

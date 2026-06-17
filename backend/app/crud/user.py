@@ -1,11 +1,13 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
+from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.base import CRUDBase
-from app.models.user import User, UserRole
+from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
-from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -19,7 +21,10 @@ class CRUDUser(CRUDBase[User]):
         self, db: AsyncSession, organization_id: uuid.UUID, *, offset: int = 0, limit: int = 50
     ) -> tuple[list[User], int]:
         from sqlalchemy import func
-        count_q = select(func.count()).select_from(User).where(User.organization_id == organization_id)
+
+        count_q = (
+            select(func.count()).select_from(User).where(User.organization_id == organization_id)
+        )
         count_result = await db.execute(count_q)
         total = count_result.scalar_one()
         result = await db.execute(
@@ -56,7 +61,7 @@ class CRUDUser(CRUDBase[User]):
         return obj
 
     async def record_login(self, db: AsyncSession, *, obj: User) -> None:
-        obj.last_login_at = datetime.now(timezone.utc)
+        obj.last_login_at = datetime.now(UTC)
         await db.flush()
         await db.refresh(obj)
 

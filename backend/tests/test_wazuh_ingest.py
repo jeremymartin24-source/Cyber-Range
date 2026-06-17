@@ -1,13 +1,14 @@
 """
 Integration tests for the Wazuh ingest endpoint.
 """
+
 import uuid
-import pytest
 from unittest.mock import patch
+
+import pytest
 from httpx import AsyncClient
 
 from app.models import Organization
-
 
 SAMPLE_ALERT = {
     "id": "wazuh-test-001",

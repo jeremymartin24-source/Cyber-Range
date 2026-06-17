@@ -2,13 +2,11 @@
 Unit tests for the Wazuh event normalizer.
 No DB, no HTTP calls — pure function tests.
 """
+
 import uuid
-from datetime import timezone
+from datetime import UTC
 
-import pytest
-
-from app.integrations.wazuh.normalizer import normalize_event, normalize_batch, _parse_timestamp
-
+from app.integrations.wazuh.normalizer import _parse_timestamp, normalize_batch, normalize_event
 
 ORG_ID = uuid.uuid4()
 
@@ -56,7 +54,10 @@ def test_normalize_event_preserves_raw_data():
 
 
 def test_normalize_event_rule_id_as_string():
-    event = {**SAMPLE_EVENT, "rule": {"id": "99999", "level": 5, "description": "test", "groups": []}}
+    event = {
+        **SAMPLE_EVENT,
+        "rule": {"id": "99999", "level": 5, "description": "test", "groups": []},
+    }
     alert = normalize_event(event, org_id=ORG_ID)
     assert alert.rule_id == 99999
     assert isinstance(alert.rule_id, int)
@@ -128,7 +129,7 @@ def test_parse_timestamp_z_suffix():
 
 def test_parse_timestamp_none():
     dt = _parse_timestamp(None)
-    assert dt.tzinfo == timezone.utc
+    assert dt.tzinfo == UTC
 
 
 def test_parse_timestamp_invalid():

@@ -1,16 +1,19 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import select, text, and_
+from datetime import UTC, datetime
+
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.base import CRUDBase
-from app.models.incident import Incident, IncidentStatus, INCIDENT_TRANSITIONS
+from app.models.incident import INCIDENT_TRANSITIONS, Incident, IncidentStatus
 from app.schemas.incident import IncidentCreate, IncidentUpdate
 
 
 class CRUDIncident(CRUDBase[Incident]):
     async def _next_incident_number(self, db: AsyncSession) -> str:
         import uuid as _uuid
-        year = datetime.now(timezone.utc).year
+
+        year = datetime.now(UTC).year
         try:
             result = await db.execute(text("SELECT nextval('incident_number_seq')"))
             seq = result.scalar_one()
@@ -35,20 +38,12 @@ class CRUDIncident(CRUDBase[Incident]):
         )
         return list(result.scalars().all())
 
-    async def get_by_team(
-        self, db: AsyncSession, team_id: uuid.UUID
-    ) -> list[Incident]:
-        result = await db.execute(
-            select(Incident).where(Incident.team_id == team_id)
-        )
+    async def get_by_team(self, db: AsyncSession, team_id: uuid.UUID) -> list[Incident]:
+        result = await db.execute(select(Incident).where(Incident.team_id == team_id))
         return list(result.scalars().all())
 
-    async def get_by_assignee(
-        self, db: AsyncSession, user_id: uuid.UUID
-    ) -> list[Incident]:
-        result = await db.execute(
-            select(Incident).where(Incident.assigned_to == user_id)
-        )
+    async def get_by_assignee(self, db: AsyncSession, user_id: uuid.UUID) -> list[Incident]:
+        result = await db.execute(select(Incident).where(Incident.assigned_to == user_id))
         return list(result.scalars().all())
 
     async def create(
@@ -68,7 +63,7 @@ class CRUDIncident(CRUDBase[Incident]):
             category=obj_in.category,
             team_id=obj_in.team_id,
             assigned_to=obj_in.assigned_to,
-            detected_at=datetime.now(timezone.utc),
+            detected_at=datetime.now(UTC),
         )
         db.add(db_obj)
         await db.commit()
@@ -95,11 +90,9 @@ class CRUDIncident(CRUDBase[Incident]):
     ) -> Incident:
         allowed = INCIDENT_TRANSITIONS.get(incident.status, set())
         if new_status not in allowed:
-            raise ValueError(
-                f"Cannot transition from {incident.status} to {new_status}"
-            )
+            raise ValueError(f"Cannot transition from {incident.status} to {new_status}")
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         incident.status = new_status
         if new_status == IncidentStatus.contained:
             incident.contained_at = now

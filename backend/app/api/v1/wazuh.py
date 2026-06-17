@@ -5,8 +5,9 @@ POST /wazuh/{org_id}/ingest   — receive forwarded Wazuh alerts (machine-to-mac
 GET  /wazuh/status            — report whether Wazuh is reachable (admin only)
 GET  /wazuh/agents            — proxy Wazuh agent list to our Endpoint format (admin only)
 """
-import uuid
+
 import secrets
+import uuid
 from typing import Annotated
 
 import structlog
@@ -20,7 +21,7 @@ from app.crud.alert import alert as alert_crud
 from app.crud.organization import organization as org_crud
 from app.database import get_db
 from app.dependencies.auth import require_admin
-from app.integrations.wazuh.client import wazuh_client, WazuhUnavailable
+from app.integrations.wazuh.client import WazuhUnavailable, wazuh_client
 from app.integrations.wazuh.normalizer import normalize_batch
 from app.models.endpoint import Endpoint
 from app.models.user import User
@@ -31,6 +32,7 @@ router = APIRouter(prefix="/wazuh", tags=["wazuh"])
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _require_ingest_secret(x_wazuh_secret: Annotated[str | None, Header()] = None) -> None:
     """
@@ -61,6 +63,7 @@ async def _agent_endpoint_map(db: AsyncSession, org_id: uuid.UUID) -> dict[str, 
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
 
+
 class IngestResponse(BaseModel):
     received: int
     ingested: int
@@ -74,6 +77,7 @@ class WazuhStatusResponse(BaseModel):
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+
 
 @router.post(
     "/{org_id}/ingest",

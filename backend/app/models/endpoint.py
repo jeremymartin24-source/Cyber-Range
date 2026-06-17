@@ -1,10 +1,13 @@
+import enum
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Text, ForeignKey, Enum as SAEnum, JSON
-from sqlalchemy.dialects.postgresql import UUID, INET
+
+from sqlalchemy import JSON, ForeignKey, String, Text
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-import enum
-from app.models.base import Base, UUIDMixin, TimestampMixin
+
+from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
 class EndpointStatus(str, enum.Enum):
@@ -18,7 +21,10 @@ class Endpoint(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "endpoints"
 
     organization_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="RESTRICT"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     wazuh_agent_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
     hostname: Mapped[str] = mapped_column(String(255), nullable=False, index=True)

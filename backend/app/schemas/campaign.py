@@ -1,7 +1,9 @@
 import uuid
 from datetime import datetime
+
 from pydantic import BaseModel, Field
-from app.models.campaign import CampaignRunStatus, CampaignRunProgressStatus
+
+from app.models.campaign import CampaignRunProgressStatus, CampaignRunStatus
 
 
 class CampaignCreate(BaseModel):
@@ -19,7 +21,9 @@ class CampaignUpdate(BaseModel):
 class CampaignScenarioEntryCreate(BaseModel):
     scenario_id: uuid.UUID
     order_index: int = Field(0, ge=0)
-    day_offset: int = Field(0, ge=0, description="Days after campaign start to suggest launching this scenario")
+    day_offset: int = Field(
+        0, ge=0, description="Days after campaign start to suggest launching this scenario"
+    )
     is_optional: bool = False
     notes: str | None = None
 

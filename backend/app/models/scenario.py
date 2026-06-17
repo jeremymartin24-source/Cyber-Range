@@ -1,10 +1,13 @@
+import enum
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Text, Integer, Boolean, ForeignKey, Enum as SAEnum, JSON, DateTime
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-import enum
-from app.models.base import Base, UUIDMixin, TimestampMixin
+
+from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
 class ScenarioDifficulty(str, enum.Enum):
@@ -47,22 +50,36 @@ class Scenario(Base, UUIDMixin, TimestampMixin):
     )
     estimated_duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    objectives: Mapped[list] = mapped_column(JSON, nullable=False, default=list, server_default="[]")
+    objectives: Mapped[list] = mapped_column(
+        JSON, nullable=False, default=list, server_default="[]"
+    )
     ttps: Mapped[list] = mapped_column(JSON, nullable=False, default=list, server_default="[]")
-    yaml_content: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict, server_default="{}")
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    yaml_content: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict, server_default="{}"
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
 
-    runs: Mapped[list["ScenarioRun"]] = relationship("ScenarioRun", back_populates="scenario", passive_deletes=True)
+    runs: Mapped[list["ScenarioRun"]] = relationship(
+        "ScenarioRun", back_populates="scenario", passive_deletes=True
+    )
 
 
 class ScenarioRun(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "scenario_runs"
 
     scenario_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("scenarios.id", ondelete="RESTRICT"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("scenarios.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     course_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("courses.id", ondelete="RESTRICT"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("courses.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     team_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("teams.id", ondelete="SET NULL"), nullable=True, index=True
@@ -92,7 +109,10 @@ class Inject(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "injects"
 
     scenario_run_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("scenario_runs.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("scenario_runs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     inject_slug: Mapped[str] = mapped_column(String(100), nullable=False)
     inject_type: Mapped[InjectType] = mapped_column(
@@ -100,7 +120,9 @@ class Inject(Base, UUIDMixin, TimestampMixin):
         nullable=False,
         index=True,
     )
-    scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    scheduled_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     fired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     status: Mapped[InjectStatus] = mapped_column(
         SAEnum(InjectStatus, name="inject_status"),

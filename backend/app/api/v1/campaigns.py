@@ -1,22 +1,24 @@
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.crud.campaign import campaign as campaign_crud
+from app.crud.campaign import campaign_run as run_crud
 from app.database import get_db
-from app.dependencies.auth import get_current_user, require_instructor, require_admin
+from app.dependencies.auth import get_current_user, require_admin, require_instructor
 from app.models.user import User
-from app.crud.campaign import campaign as campaign_crud, campaign_run as run_crud, campaign_progress as progress_crud
 from app.schemas.campaign import (
     CampaignCreate,
-    CampaignUpdate,
-    CampaignResponse,
-    CampaignScenarioEntryCreate,
-    CampaignScenarioEntryUpdate,
-    CampaignScenarioEntryResponse,
     CampaignLaunchRequest,
-    CampaignRunResponse,
+    CampaignResponse,
     CampaignRunProgressResponse,
     CampaignRunReport,
+    CampaignRunResponse,
+    CampaignScenarioEntryCreate,
+    CampaignScenarioEntryResponse,
+    CampaignScenarioEntryUpdate,
+    CampaignUpdate,
 )
 from app.schemas.common import MessageResponse
 from app.services import campaign_service
@@ -26,6 +28,7 @@ runs_router = APIRouter(prefix="/campaign-runs", tags=["campaign-runs"])
 
 
 # ── Campaign library ───────────────────────────────────────────────────────────
+
 
 @router.get("", response_model=list[CampaignResponse])
 async def list_campaigns(
@@ -92,6 +95,7 @@ async def delete_campaign(
 
 # ── Campaign scenario entries ──────────────────────────────────────────────────
 
+
 @router.get("/{campaign_id}/scenarios", response_model=list[CampaignScenarioEntryResponse])
 async def list_campaign_scenarios(
     campaign_id: uuid.UUID,
@@ -119,6 +123,7 @@ async def add_campaign_scenario(
     if not c:
         raise HTTPException(status_code=404, detail="Campaign not found")
     from app.crud.scenario import scenario as scenario_crud
+
     sc = await scenario_crud.get(db, obj_in.scenario_id)
     if not sc:
         raise HTTPException(status_code=404, detail="Scenario not found")
@@ -162,6 +167,7 @@ async def remove_campaign_scenario(
 
 # ── Campaign launch ────────────────────────────────────────────────────────────
 
+
 @router.post(
     "/{campaign_id}/launch",
     response_model=CampaignRunResponse,
@@ -192,6 +198,7 @@ async def launch_campaign(
 
 
 # ── Campaign runs ──────────────────────────────────────────────────────────────
+
 
 @runs_router.get("", response_model=list[CampaignRunResponse])
 async def list_campaign_runs(

@@ -1,10 +1,13 @@
+import enum
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Text, Integer, Boolean, ForeignKey, Enum as SAEnum, JSON, DateTime
+
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-import enum
-from app.models.base import Base, UUIDMixin, TimestampMixin
+
+from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
 class CampaignRunStatus(str, enum.Enum):
@@ -27,13 +30,16 @@ class Campaign(Base, UUIDMixin, TimestampMixin):
     slug: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
     created_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
 
     entries: Mapped[list["CampaignScenarioEntry"]] = relationship(
-        "CampaignScenarioEntry", back_populates="campaign",
+        "CampaignScenarioEntry",
+        back_populates="campaign",
         order_by="CampaignScenarioEntry.order_index",
         passive_deletes=True,
     )
@@ -44,17 +50,23 @@ class Campaign(Base, UUIDMixin, TimestampMixin):
 
 class CampaignScenarioEntry(Base, UUIDMixin, TimestampMixin):
     """An ordered scenario slot within a Campaign template."""
+
     __tablename__ = "campaign_scenario_entries"
 
     campaign_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("campaigns.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     scenario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("scenarios.id", ondelete="RESTRICT"), nullable=False
     )
     order_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     day_offset: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    is_optional: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    is_optional: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     campaign: Mapped["Campaign"] = relationship("Campaign", back_populates="entries")
@@ -63,13 +75,20 @@ class CampaignScenarioEntry(Base, UUIDMixin, TimestampMixin):
 
 class CampaignRun(Base, UUIDMixin, TimestampMixin):
     """A running instance of a Campaign for a specific course."""
+
     __tablename__ = "campaign_runs"
 
     campaign_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("campaigns.id", ondelete="RESTRICT"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("campaigns.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     course_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("courses.id", ondelete="RESTRICT"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("courses.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     team_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("teams.id", ondelete="SET NULL"), nullable=True
@@ -90,7 +109,8 @@ class CampaignRun(Base, UUIDMixin, TimestampMixin):
 
     campaign: Mapped["Campaign"] = relationship("Campaign", back_populates="runs")
     progress: Mapped[list["CampaignRunProgress"]] = relationship(
-        "CampaignRunProgress", back_populates="campaign_run",
+        "CampaignRunProgress",
+        back_populates="campaign_run",
         order_by="CampaignRunProgress.order_index",
         passive_deletes=True,
     )
@@ -98,13 +118,19 @@ class CampaignRun(Base, UUIDMixin, TimestampMixin):
 
 class CampaignRunProgress(Base, UUIDMixin, TimestampMixin):
     """Tracks whether each scenario entry in a CampaignRun has been run."""
+
     __tablename__ = "campaign_run_progress"
 
     campaign_run_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("campaign_runs.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("campaign_runs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     campaign_scenario_entry_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("campaign_scenario_entries.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("campaign_scenario_entries.id", ondelete="CASCADE"),
+        nullable=False,
     )
     scenario_run_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("scenario_runs.id", ondelete="SET NULL"), nullable=True

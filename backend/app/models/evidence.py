@@ -1,10 +1,12 @@
+import enum
 import uuid
-from datetime import datetime
-from sqlalchemy import String, Text, BigInteger, Boolean, ForeignKey, Enum as SAEnum, JSON
+
+from sqlalchemy import JSON, BigInteger, Boolean, ForeignKey, String, Text
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-import enum
-from app.models.base import Base, UUIDMixin, TimestampMixin
+
+from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
 class EvidenceType(str, enum.Enum):
@@ -23,7 +25,10 @@ class Evidence(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "evidence"
 
     incident_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("incidents.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("incidents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     collected_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
@@ -44,9 +49,13 @@ class Evidence(Base, UUIDMixin, TimestampMixin):
     source_endpoint_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("endpoints.id", ondelete="SET NULL"), nullable=True
     )
-    is_key_evidence: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    is_key_evidence: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
 
     incident: Mapped["Incident"] = relationship("Incident", back_populates="evidence")
     collector: Mapped["User"] = relationship("User", foreign_keys=[collected_by])
     source_alert: Mapped["Alert | None"] = relationship("Alert", foreign_keys=[source_alert_id])
-    source_endpoint: Mapped["Endpoint | None"] = relationship("Endpoint", foreign_keys=[source_endpoint_id])
+    source_endpoint: Mapped["Endpoint | None"] = relationship(
+        "Endpoint", foreign_keys=[source_endpoint_id]
+    )

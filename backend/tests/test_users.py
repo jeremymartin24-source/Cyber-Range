@@ -1,10 +1,13 @@
 import pytest
 from httpx import AsyncClient
+
 from app.models.user import User
 
 
 @pytest.mark.asyncio
-async def test_list_users_as_admin(client: AsyncClient, admin_token: str, test_admin: User, test_student: User):
+async def test_list_users_as_admin(
+    client: AsyncClient, admin_token: str, test_admin: User, test_student: User
+):
     resp = await client.get("/api/v1/users/", headers={"Authorization": f"Bearer {admin_token}"})
     assert resp.status_code == 200
     data = resp.json()
@@ -19,7 +22,9 @@ async def test_list_users_as_student_forbidden(client: AsyncClient, student_toke
 
 
 @pytest.mark.asyncio
-async def test_get_own_profile_as_student(client: AsyncClient, test_student: User, student_token: str):
+async def test_get_own_profile_as_student(
+    client: AsyncClient, test_student: User, student_token: str
+):
     resp = await client.get(
         f"/api/v1/users/{test_student.id}",
         headers={"Authorization": f"Bearer {student_token}"},
@@ -29,7 +34,9 @@ async def test_get_own_profile_as_student(client: AsyncClient, test_student: Use
 
 
 @pytest.mark.asyncio
-async def test_student_cannot_view_other_user(client: AsyncClient, test_admin: User, student_token: str):
+async def test_student_cannot_view_other_user(
+    client: AsyncClient, test_admin: User, student_token: str
+):
     resp = await client.get(
         f"/api/v1/users/{test_admin.id}",
         headers={"Authorization": f"Bearer {student_token}"},

@@ -1,15 +1,16 @@
 import uuid
+
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Organization, User
 from app.crud import course as course_crud
+from app.models import Organization, User
 from app.schemas.course import CourseCreate
 
-
 # ── Shared fixtures ────────────────────────────────────────────────────────────
+
 
 @pytest_asyncio.fixture
 async def campaign_course(db: AsyncSession, test_org: Organization, test_instructor: User):
@@ -91,6 +92,7 @@ async def campaign_run(
 
 # ── Campaign library ───────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_create_campaign_admin(client: AsyncClient, admin_token: str):
     resp = await client.post(
@@ -128,7 +130,9 @@ async def test_create_campaign_duplicate_slug(client: AsyncClient, admin_token: 
 
 
 @pytest.mark.asyncio
-async def test_list_campaigns_instructor(client: AsyncClient, instructor_token: str, campaign: dict):
+async def test_list_campaigns_instructor(
+    client: AsyncClient, instructor_token: str, campaign: dict
+):
     resp = await client.get(
         "/api/v1/campaigns",
         headers={"Authorization": f"Bearer {instructor_token}"},
@@ -202,6 +206,7 @@ async def test_delete_campaign(client: AsyncClient, admin_token: str):
 
 
 # ── Campaign scenario entries ──────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_add_scenario_to_campaign(
@@ -339,6 +344,7 @@ async def test_remove_campaign_scenario_entry(
 
 # ── Campaign launch ────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_launch_campaign(
     client: AsyncClient,
@@ -397,6 +403,7 @@ async def test_student_cannot_launch_campaign(
 
 
 # ── Campaign runs ──────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_campaign_runs(
@@ -471,6 +478,7 @@ async def test_get_campaign_run_progress(
 
 
 # ── Campaign run progression ───────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_launch_next_scenario(
@@ -652,6 +660,7 @@ async def test_complete_already_completed_run_fails(
 
 
 # ── Campaign run report ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_campaign_run_report(

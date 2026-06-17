@@ -1,6 +1,8 @@
 import uuid
-from sqlalchemy import select, and_
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.base import CRUDBase
 from app.models.course import Course
 from app.models.team import Enrollment, EnrollmentStatus
@@ -19,15 +21,13 @@ class CRUDCourse(CRUDBase[Course]):
         )
         return list(result.scalars().all())
 
-    async def get_by_instructor(
-        self, db: AsyncSession, instructor_id: uuid.UUID
-    ) -> list[Course]:
-        result = await db.execute(
-            select(Course).where(Course.instructor_id == instructor_id)
-        )
+    async def get_by_instructor(self, db: AsyncSession, instructor_id: uuid.UUID) -> list[Course]:
+        result = await db.execute(select(Course).where(Course.instructor_id == instructor_id))
         return list(result.scalars().all())
 
-    async def create(self, db: AsyncSession, *, obj_in: CourseCreate, instructor_id: uuid.UUID) -> Course:
+    async def create(
+        self, db: AsyncSession, *, obj_in: CourseCreate, instructor_id: uuid.UUID
+    ) -> Course:
         db_obj = Course(
             organization_id=obj_in.organization_id,
             instructor_id=instructor_id,
@@ -62,9 +62,7 @@ class CRUDEnrollment(CRUDBase[Enrollment]):
         )
         return result.scalar_one_or_none()
 
-    async def get_by_course(
-        self, db: AsyncSession, course_id: uuid.UUID
-    ) -> list[Enrollment]:
+    async def get_by_course(self, db: AsyncSession, course_id: uuid.UUID) -> list[Enrollment]:
         result = await db.execute(
             select(Enrollment).where(
                 and_(
@@ -75,12 +73,8 @@ class CRUDEnrollment(CRUDBase[Enrollment]):
         )
         return list(result.scalars().all())
 
-    async def get_by_user(
-        self, db: AsyncSession, user_id: uuid.UUID
-    ) -> list[Enrollment]:
-        result = await db.execute(
-            select(Enrollment).where(Enrollment.user_id == user_id)
-        )
+    async def get_by_user(self, db: AsyncSession, user_id: uuid.UUID) -> list[Enrollment]:
+        result = await db.execute(select(Enrollment).where(Enrollment.user_id == user_id))
         return list(result.scalars().all())
 
     async def enroll(

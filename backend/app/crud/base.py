@@ -1,14 +1,16 @@
 import uuid
-from typing import TypeVar, Generic, Type
-from sqlalchemy import select, func
+from typing import Generic, TypeVar
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.base import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 
 
 class CRUDBase(Generic[ModelType]):
-    def __init__(self, model: Type[ModelType]):
+    def __init__(self, model: type[ModelType]):
         self.model = model
 
     async def get(self, db: AsyncSession, id: uuid.UUID) -> ModelType | None:

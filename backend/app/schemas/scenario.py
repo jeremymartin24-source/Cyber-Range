@@ -1,7 +1,9 @@
 import uuid
 from datetime import datetime
+
 from pydantic import BaseModel, Field
-from app.models.scenario import ScenarioDifficulty, ScenarioRunStatus, InjectType, InjectStatus
+
+from app.models.scenario import InjectStatus, InjectType, ScenarioDifficulty, ScenarioRunStatus
 
 
 class ScenarioResponse(BaseModel):

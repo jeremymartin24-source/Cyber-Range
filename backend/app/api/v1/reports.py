@@ -5,21 +5,23 @@ Grades are per-student per-run; one instructor can grade multiple students
 on the same run.  Reports aggregate the inject timeline and decision audit
 trail for post-exercise review.
 """
+
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.crud.grade import grade as grade_crud
+from app.crud.scenario import scenario_run as run_crud
 from app.database import get_db
 from app.dependencies.auth import get_current_user, require_instructor
 from app.models.user import User, UserRole
-from app.crud.grade import grade as grade_crud
-from app.crud.scenario import scenario_run as run_crud
 from app.schemas.grade import (
-    GradeCreate,
-    GradeUpdate,
-    GradeResponse,
-    ScenarioRunReport,
     CourseLeaderboardEntry,
+    GradeCreate,
+    GradeResponse,
+    GradeUpdate,
+    ScenarioRunReport,
     StudentPerformanceReport,
 )
 from app.services import report_service
@@ -29,6 +31,7 @@ router = APIRouter(tags=["reports"])
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+
 async def _get_run_or_404(db: AsyncSession, run_id: uuid.UUID):
     run = await run_crud.get(db, run_id)
     if not run:
@@ -37,6 +40,7 @@ async def _get_run_or_404(db: AsyncSession, run_id: uuid.UUID):
 
 
 # ── Run report ─────────────────────────────────────────────────────────────────
+
 
 @router.get("/scenario-runs/{run_id}/report", response_model=ScenarioRunReport)
 async def get_run_report(
@@ -52,6 +56,7 @@ async def get_run_report(
 
 
 # ── Grades (sub-resource of scenario-runs) ────────────────────────────────────
+
 
 @router.get("/scenario-runs/{run_id}/grades", response_model=list[GradeResponse])
 async def list_grades_for_run(
@@ -145,6 +150,7 @@ async def delete_grade(
 
 
 # ── Course-level reporting ─────────────────────────────────────────────────────
+
 
 @router.get("/courses/{course_id}/grades", response_model=list[GradeResponse])
 async def list_course_grades(

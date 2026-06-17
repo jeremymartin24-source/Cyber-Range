@@ -1,10 +1,12 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from sqlalchemy import String, Text, ForeignKey, Numeric, DateTime, UniqueConstraint, JSON
+
+from sqlalchemy import JSON, DateTime, ForeignKey, Numeric, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.models.base import Base, UUIDMixin, TimestampMixin
+
+from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
 class StudentGrade(Base, UUIDMixin, TimestampMixin):
@@ -14,7 +16,10 @@ class StudentGrade(Base, UUIDMixin, TimestampMixin):
     )
 
     scenario_run_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("scenario_runs.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("scenario_runs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     course_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True

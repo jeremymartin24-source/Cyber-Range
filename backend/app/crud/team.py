@@ -1,18 +1,16 @@
 import uuid
-from sqlalchemy import select, and_
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.base import CRUDBase
 from app.models.team import Team, TeamMember, TeamMemberRole
 from app.schemas.team import TeamCreate, TeamUpdate
 
 
 class CRUDTeam(CRUDBase[Team]):
-    async def get_by_course(
-        self, db: AsyncSession, course_id: uuid.UUID
-    ) -> list[Team]:
-        result = await db.execute(
-            select(Team).where(Team.course_id == course_id)
-        )
+    async def get_by_course(self, db: AsyncSession, course_id: uuid.UUID) -> list[Team]:
+        result = await db.execute(select(Team).where(Team.course_id == course_id))
         return list(result.scalars().all())
 
     async def create(self, db: AsyncSession, *, obj_in: TeamCreate) -> Team:
@@ -46,20 +44,12 @@ class CRUDTeamMember(CRUDBase[TeamMember]):
         )
         return result.scalar_one_or_none()
 
-    async def get_by_team(
-        self, db: AsyncSession, team_id: uuid.UUID
-    ) -> list[TeamMember]:
-        result = await db.execute(
-            select(TeamMember).where(TeamMember.team_id == team_id)
-        )
+    async def get_by_team(self, db: AsyncSession, team_id: uuid.UUID) -> list[TeamMember]:
+        result = await db.execute(select(TeamMember).where(TeamMember.team_id == team_id))
         return list(result.scalars().all())
 
-    async def get_by_user(
-        self, db: AsyncSession, user_id: uuid.UUID
-    ) -> list[TeamMember]:
-        result = await db.execute(
-            select(TeamMember).where(TeamMember.user_id == user_id)
-        )
+    async def get_by_user(self, db: AsyncSession, user_id: uuid.UUID) -> list[TeamMember]:
+        result = await db.execute(select(TeamMember).where(TeamMember.user_id == user_id))
         return list(result.scalars().all())
 
     async def add_member(

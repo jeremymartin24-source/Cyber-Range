@@ -1,19 +1,22 @@
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.crud import course as course_crud
+from app.crud import enrollment as enrollment_crud
 from app.database import get_db
-from app.dependencies.auth import get_current_user, require_instructor, require_admin
-from app.models.user import User, UserRole
+from app.dependencies.auth import get_current_user, require_admin, require_instructor
 from app.models.team import EnrollmentStatus
-from app.crud import course as course_crud, enrollment as enrollment_crud
+from app.models.user import User, UserRole
+from app.schemas.common import MessageResponse
 from app.schemas.course import (
     CourseCreate,
-    CourseUpdate,
     CourseResponse,
-    EnrollRequest,
+    CourseUpdate,
     EnrollmentResponse,
+    EnrollRequest,
 )
-from app.schemas.common import MessageResponse
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
@@ -88,7 +91,9 @@ async def delete_course(
     return MessageResponse(message="Course deleted")
 
 
-@router.post("/{course_id}/enroll", response_model=EnrollmentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{course_id}/enroll", response_model=EnrollmentResponse, status_code=status.HTTP_201_CREATED
+)
 async def enroll_student(
     course_id: uuid.UUID,
     obj_in: EnrollRequest,

@@ -1,8 +1,10 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
+
 import redis.asyncio as aioredis
-from jose import jwt, JWTError
+from jose import JWTError, jwt
+
 from app.config import settings
 
 TOKEN_TYPE_ACCESS = "access"
@@ -10,12 +12,12 @@ TOKEN_TYPE_REFRESH = "refresh"
 
 
 def _create_token(subject: str, token_type: str, expires_delta: timedelta) -> str:
-    expire = datetime.now(timezone.utc) + expires_delta
+    expire = datetime.now(UTC) + expires_delta
     payload = {
         "sub": subject,
         "type": token_type,
         "exp": expire,
-        "iat": datetime.now(timezone.utc),
+        "iat": datetime.now(UTC),
     }
     return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
 
@@ -51,7 +53,7 @@ async def denylist_token(token: str) -> None:
         payload = decode_token(token)
         exp = payload.get("exp")
         if exp:
-            ttl = int(exp - datetime.now(timezone.utc).timestamp())
+            ttl = int(exp - datetime.now(UTC).timestamp())
             if ttl > 0:
                 r = await get_redis()
                 await r.setex(f"denylist:{token}", ttl, "1")

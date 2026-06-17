@@ -1,9 +1,11 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import select, and_
+from datetime import UTC, datetime
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.crud.base import CRUDBase
-from app.models.scenario import Scenario, ScenarioRun, Inject, ScenarioRunStatus, InjectStatus
+from app.models.scenario import Inject, InjectStatus, Scenario, ScenarioRun, ScenarioRunStatus
 
 
 class CRUDScenario(CRUDBase[Scenario]):
@@ -18,7 +20,6 @@ class CRUDScenario(CRUDBase[Scenario]):
         return list(result.scalars().all())
 
     async def create_from_yaml(self, db: AsyncSession, *, parsed: dict) -> Scenario:
-        injects_raw = parsed.get("injects", [])
         db_obj = Scenario(
             slug=parsed["id"],
             name=parsed["name"],
@@ -35,7 +36,9 @@ class CRUDScenario(CRUDBase[Scenario]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def update_from_yaml(self, db: AsyncSession, *, db_obj: Scenario, parsed: dict) -> Scenario:
+    async def update_from_yaml(
+        self, db: AsyncSession, *, db_obj: Scenario, parsed: dict
+    ) -> Scenario:
         db_obj.name = parsed["name"]
         db_obj.version = parsed.get("version", "1.0.0")
         db_obj.difficulty = parsed.get("difficulty", "intermediate")
@@ -51,9 +54,7 @@ class CRUDScenario(CRUDBase[Scenario]):
 
 
 class CRUDScenarioRun(CRUDBase[ScenarioRun]):
-    async def get_by_course(
-        self, db: AsyncSession, course_id: uuid.UUID
-    ) -> list[ScenarioRun]:
+    async def get_by_course(self, db: AsyncSession, course_id: uuid.UUID) -> list[ScenarioRun]:
         result = await db.execute(
             select(ScenarioRun)
             .where(ScenarioRun.course_id == course_id)
@@ -77,7 +78,7 @@ class CRUDScenarioRun(CRUDBase[ScenarioRun]):
         team_id: uuid.UUID | None = None,
         settings: dict | None = None,
     ) -> ScenarioRun:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         db_obj = ScenarioRun(
             scenario_id=scenario_id,
             course_id=course_id,
@@ -103,7 +104,7 @@ class CRUDScenarioRun(CRUDBase[ScenarioRun]):
 
     async def complete(self, db: AsyncSession, *, run: ScenarioRun) -> ScenarioRun:
         run.status = ScenarioRunStatus.completed
-        run.completed_at = datetime.now(timezone.utc)
+        run.completed_at = datetime.now(UTC)
         db.add(run)
         await db.flush()
         await db.refresh(run)
@@ -111,7 +112,7 @@ class CRUDScenarioRun(CRUDBase[ScenarioRun]):
 
     async def abort(self, db: AsyncSession, *, run: ScenarioRun) -> ScenarioRun:
         run.status = ScenarioRunStatus.aborted
-        run.completed_at = datetime.now(timezone.utc)
+        run.completed_at = datetime.now(UTC)
         db.add(run)
         await db.flush()
         await db.refresh(run)
@@ -119,9 +120,7 @@ class CRUDScenarioRun(CRUDBase[ScenarioRun]):
 
 
 class CRUDInject(CRUDBase[Inject]):
-    async def get_by_run(
-        self, db: AsyncSession, scenario_run_id: uuid.UUID
-    ) -> list[Inject]:
+    async def get_by_run(self, db: AsyncSession, scenario_run_id: uuid.UUID) -> list[Inject]:
         result = await db.execute(
             select(Inject)
             .where(Inject.scenario_run_id == scenario_run_id)
@@ -130,7 +129,7 @@ class CRUDInject(CRUDBase[Inject]):
         return list(result.scalars().all())
 
     async def get_pending_due(self, db: AsyncSession) -> list[Inject]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         result = await db.execute(
             select(Inject).where(
                 and_(
@@ -154,7 +153,7 @@ class CRUDInject(CRUDBase[Inject]):
             at_minute = spec.get("at_minute", 0)
             scheduled_at = datetime.fromtimestamp(
                 started_at.timestamp() + at_minute * 60,
-                tz=timezone.utc,
+                tz=UTC,
             )
             inject = Inject(
                 scenario_run_id=scenario_run_id,
@@ -170,22 +169,18 @@ class CRUDInject(CRUDBase[Inject]):
             await db.refresh(inject)
         return injects
 
-    async def mark_fired(
-        self, db: AsyncSession, *, inject: Inject, result: dict
-    ) -> Inject:
+    async def mark_fired(self, db: AsyncSession, *, inject: Inject, result: dict) -> Inject:
         inject.status = InjectStatus.fired
-        inject.fired_at = datetime.now(timezone.utc)
+        inject.fired_at = datetime.now(UTC)
         inject.result = result
         db.add(inject)
         await db.flush()
         await db.refresh(inject)
         return inject
 
-    async def mark_failed(
-        self, db: AsyncSession, *, inject: Inject, error: str
-    ) -> Inject:
+    async def mark_failed(self, db: AsyncSession, *, inject: Inject, error: str) -> Inject:
         inject.status = InjectStatus.failed
-        inject.fired_at = datetime.now(timezone.utc)
+        inject.fired_at = datetime.now(UTC)
         inject.result = {"error": error}
         db.add(inject)
         await db.flush()

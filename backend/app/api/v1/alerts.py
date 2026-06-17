@@ -1,10 +1,13 @@
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.crud import alert as alert_crud
+from app.crud import incident as incident_crud
 from app.database import get_db
 from app.dependencies.auth import get_current_user, require_instructor
 from app.models.user import User
-from app.crud import alert as alert_crud, incident as incident_crud
 from app.schemas.alert import AlertCreate, AlertLinkRequest, AlertResponse
 from app.schemas.common import MessageResponse
 from app.services import decision_service
@@ -57,9 +60,7 @@ async def acknowledge_alert(
     if a.is_acknowledged:
         raise HTTPException(status_code=409, detail="Alert already acknowledged")
     updated = await alert_crud.acknowledge(db, alert=a, user_id=current_user.id)
-    await decision_service.alert_acknowledged(
-        db, user_id=current_user.id, alert_id=alert_id
-    )
+    await decision_service.alert_acknowledged(db, user_id=current_user.id, alert_id=alert_id)
     return updated
 
 

@@ -1,13 +1,14 @@
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
-from app.schemas.organization import OrganizationCreate, OrganizationUpdate, OrganizationResponse
-from app.schemas.common import PaginatedResponse
 from app.crud import organization as org_crud
+from app.database import get_db
 from app.dependencies.auth import require_admin, require_instructor
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
+from app.schemas.organization import OrganizationCreate, OrganizationResponse, OrganizationUpdate
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 

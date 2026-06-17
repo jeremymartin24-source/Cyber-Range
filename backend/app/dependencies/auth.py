@@ -1,12 +1,14 @@
 import uuid
-from fastapi import Depends, HTTPException, Cookie, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+from fastapi import Cookie, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import get_db
-from app.services import auth_service
+
 from app.crud import user as user_crud
+from app.database import get_db
 from app.models.user import User, UserRole
+from app.services import auth_service
 
 security = HTTPBearer(auto_error=False)
 
@@ -65,6 +67,7 @@ def require_roles(*roles: UserRole):
                 detail="Insufficient permissions",
             )
         return current_user
+
     return role_checker
 
 
