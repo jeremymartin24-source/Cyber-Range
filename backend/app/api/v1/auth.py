@@ -1,13 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, Cookie, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError
 import uuid
 
+from app.config import settings
 from app.database import get_db
+from app.rate_limit import limiter
 from app.schemas.auth import LoginRequest, TokenResponse, RefreshResponse
 from app.schemas.user import UserResponse, PasswordChange
 from app.crud import user as user_crud
 from app.services import auth_service
+from app.services import lockout_service
 from app.dependencies.auth import get_current_user, _extract_token
 from app.models.user import User
 
@@ -16,21 +19,34 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 COOKIE_OPTS = {
     "httponly": True,
     "samesite": "strict",
-    "secure": False,  # set True in production behind HTTPS
+    "secure": settings.is_production,  # True behind HTTPS in production
 }
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
 async def login(
+    request: Request,
     body: LoginRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
+    # Check brute-force lockout before touching the DB
+    if await lockout_service.is_locked(body.email):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed attempts — try again in 15 minutes",
+        )
+
     db_user = await user_crud.get_by_email(db, email=body.email)
     if not db_user or not user_crud.verify_password(body.password, db_user.password_hash):
+        await lockout_service.record_failed(body.email)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
     if not db_user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated")
+
+    await lockout_service.clear(body.email)
 
     access_token = auth_service.create_access_token(db_user.id, db_user.role.value)
     refresh_token = auth_service.create_refresh_token(db_user.id)
@@ -63,7 +79,9 @@ async def logout(
 
 
 @router.post("/refresh", response_model=RefreshResponse)
+@limiter.limit("30/minute")
 async def refresh(
+    request: Request,
     response: Response,
     refresh_token: str | None = Cookie(default=None),
     db: AsyncSession = Depends(get_db),

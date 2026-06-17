@@ -7,28 +7,145 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
+      - certbot_webroot:/var/www/certbot:ro
     depends_on:
       - backend
       - frontend
+    networks:
+      - public
 
   backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: final
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    env_file: .env.production
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/2
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - public
+      - internal
     deploy:
       resources:
         limits:
           memory: 1G
+    restart: unless-stopped
 
   worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: final
+    command: celery -A app.workers.celery_app worker --loglevel=info -Q default
+    env_file: .env.production
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/2
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
     deploy:
       resources:
         limits:
           memory: 512M
+    restart: unless-stopped
+
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: final
+    command: celery -A app.workers.celery_app beat --loglevel=info --scheduler celery.beat:PersistentScheduler
+    env_file: .env.production
+    environment:
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/2
+    volumes:
+      - celerybeat_data:/var/run/celerybeat
+    depends_on:
+      - redis
+    networks:
+      - internal
+    restart: unless-stopped
 
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
     command: node server.js
     environment:
       - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${PUBLIC_URL:-https://localhost}
+      - INTERNAL_API_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - public
+      - internal
     deploy:
       resources:
         limits:
           memory: 512M
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # No ports exposed — internal network only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    # No ports exposed — internal network only
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+    restart: unless-stopped
+
+networks:
+  public:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true   # no outbound internet access from this network
+
+volumes:
+  postgres_data:
+  redis_data:
+  celerybeat_data:
+  certbot_webroot:

@@ -16,4 +16,9 @@ RUN uv pip install --system --no-cache -e ".[dev]"
 FROM deps AS final
 COPY . .
 RUN chmod +x prestart.sh
+
+# Run as non-root
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+USER appuser
+
 ENTRYPOINT ["./prestart.sh"]

@@ -14,6 +14,8 @@ from app.crud import user as user_crud, organization as org_crud
 from app.schemas.organization import OrganizationCreate
 from app.schemas.user import UserCreate
 import app.services.auth_service as auth_service_module
+import app.services.lockout_service as lockout_service_module
+from app.rate_limit import limiter as app_limiter
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
@@ -48,6 +50,13 @@ async def setup_database():
 async def mock_redis_denylist(monkeypatch):
     monkeypatch.setattr(auth_service_module, "is_token_denylisted", AsyncMock(return_value=False))
     monkeypatch.setattr(auth_service_module, "denylist_token", AsyncMock(return_value=None))
+    monkeypatch.setattr(lockout_service_module, "is_locked", AsyncMock(return_value=False))
+    monkeypatch.setattr(lockout_service_module, "record_failed", AsyncMock(return_value=1))
+    monkeypatch.setattr(lockout_service_module, "clear", AsyncMock(return_value=None))
+    # Disable rate limiting in tests — counters accumulate across the session
+    app_limiter.enabled = False
+    yield
+    app_limiter.enabled = True
 
 
 @pytest_asyncio.fixture
