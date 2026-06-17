@@ -33,6 +33,14 @@ class Settings(BaseSettings):
     # CORS
     allowed_origins: str = "http://localhost:3000"
 
+    # Wazuh integration (all optional — set to enable live alert ingestion)
+    wazuh_url: str | None = None           # e.g. https://wazuh-manager:55000
+    wazuh_user: str = "wazuh-wui"
+    wazuh_password: str = ""
+    wazuh_verify_tls: bool = True          # set False only for self-signed certs in dev
+    wazuh_ingest_secret: str = ""          # shared secret for POST /wazuh/{org_id}/ingest
+    wazuh_poll_interval_seconds: int = 60  # how often the beat task polls Wazuh
+
     @property
     def allowed_origins_list(self) -> List[str]:
         return [o.strip() for o in self.allowed_origins.split(",")]
@@ -40,6 +48,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    @property
+    def wazuh_enabled(self) -> bool:
+        return bool(self.wazuh_url)
 
 
 settings = Settings()

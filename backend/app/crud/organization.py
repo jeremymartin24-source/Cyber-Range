@@ -10,6 +10,10 @@ class CRUDOrganization(CRUDBase[Organization]):
         result = await db.execute(select(Organization).where(Organization.slug == slug))
         return result.scalar_one_or_none()
 
+    async def list_all(self, db: AsyncSession) -> list[Organization]:
+        result = await db.execute(select(Organization).order_by(Organization.name))
+        return list(result.scalars().all())
+
     async def create(self, db: AsyncSession, *, obj_in: OrganizationCreate) -> Organization:
         org = Organization(
             name=obj_in.name,

@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 class AlertCreate(BaseModel):
     organization_id: uuid.UUID
+    wazuh_alert_id: str | None = None
     rule_id: int | None = None
     rule_level: int | None = Field(None, ge=0, le=15)
     rule_description: str | None = None

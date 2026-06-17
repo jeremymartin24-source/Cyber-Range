@@ -7,6 +7,9 @@ from app.models.alert import Alert, IncidentAlert
 from app.schemas.alert import AlertCreate
 
 
+
+
+
 class CRUDAlert(CRUDBase[Alert]):
     async def get_by_organization(
         self,
@@ -47,9 +50,16 @@ class CRUDAlert(CRUDBase[Alert]):
         )
         return list(result.scalars().all())
 
+    async def get_by_wazuh_id(self, db: AsyncSession, wazuh_alert_id: str) -> Alert | None:
+        result = await db.execute(
+            select(Alert).where(Alert.wazuh_alert_id == wazuh_alert_id)
+        )
+        return result.scalar_one_or_none()
+
     async def create(self, db: AsyncSession, *, obj_in: AlertCreate) -> Alert:
         db_obj = Alert(
             organization_id=obj_in.organization_id,
+            wazuh_alert_id=obj_in.wazuh_alert_id,
             rule_id=obj_in.rule_id,
             rule_level=obj_in.rule_level,
             rule_description=obj_in.rule_description,
