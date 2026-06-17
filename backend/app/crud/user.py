@@ -58,6 +58,7 @@ class CRUDUser(CRUDBase[User]):
     async def record_login(self, db: AsyncSession, *, obj: User) -> None:
         obj.last_login_at = datetime.now(timezone.utc)
         await db.flush()
+        await db.refresh(obj)
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         return pwd_context.verify(plain_password, hashed_password)

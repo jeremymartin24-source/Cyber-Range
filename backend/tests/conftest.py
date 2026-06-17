@@ -65,18 +65,35 @@ async def client() -> AsyncClient:
     app.dependency_overrides.clear()
 
 
-@pytest_asyncio.fixture
-async def test_org(db: AsyncSession) -> Organization:
-    return await org_crud.create(db, obj_in=OrganizationCreate(
+# --- Shared fixtures committed once per session ---
+
+@pytest_asyncio.fixture(scope="session")
+async def shared_db():
+    async with TestSessionLocal() as session:
+        yield session
+        await session.commit()
+
+
+@pytest_asyncio.fixture(scope="session")
+async def test_org(shared_db: AsyncSession) -> Organization:
+    existing = await org_crud.get_by_slug(shared_db, slug="test-org")
+    if existing:
+        return existing
+    org = await org_crud.create(shared_db, obj_in=OrganizationCreate(
         name="Test Org",
         slug="test-org",
         settings={},
     ))
+    await shared_db.commit()
+    return org
 
 
-@pytest_asyncio.fixture
-async def test_admin(db: AsyncSession, test_org: Organization) -> User:
-    return await user_crud.create(db, obj_in=UserCreate(
+@pytest_asyncio.fixture(scope="session")
+async def test_admin(shared_db: AsyncSession, test_org: Organization) -> User:
+    existing = await user_crud.get_by_email(shared_db, email="admin@test.com")
+    if existing:
+        return existing
+    admin = await user_crud.create(shared_db, obj_in=UserCreate(
         email="admin@test.com",
         password="TestPass123!",
         first_name="Test",
@@ -84,11 +101,33 @@ async def test_admin(db: AsyncSession, test_org: Organization) -> User:
         role=UserRole.admin,
         organization_id=test_org.id,
     ))
+    await shared_db.commit()
+    return admin
 
 
-@pytest_asyncio.fixture
-async def test_student(db: AsyncSession, test_org: Organization) -> User:
-    return await user_crud.create(db, obj_in=UserCreate(
+@pytest_asyncio.fixture(scope="session")
+async def test_instructor(shared_db: AsyncSession, test_org: Organization) -> User:
+    existing = await user_crud.get_by_email(shared_db, email="instructor@test.com")
+    if existing:
+        return existing
+    instructor = await user_crud.create(shared_db, obj_in=UserCreate(
+        email="instructor@test.com",
+        password="TestPass123!",
+        first_name="Test",
+        last_name="Instructor",
+        role=UserRole.instructor,
+        organization_id=test_org.id,
+    ))
+    await shared_db.commit()
+    return instructor
+
+
+@pytest_asyncio.fixture(scope="session")
+async def test_student(shared_db: AsyncSession, test_org: Organization) -> User:
+    existing = await user_crud.get_by_email(shared_db, email="student@test.com")
+    if existing:
+        return existing
+    student = await user_crud.create(shared_db, obj_in=UserCreate(
         email="student@test.com",
         password="TestPass123!",
         first_name="Test",
@@ -96,15 +135,26 @@ async def test_student(db: AsyncSession, test_org: Organization) -> User:
         role=UserRole.student,
         organization_id=test_org.id,
     ))
+    await shared_db.commit()
+    return student
 
 
 @pytest_asyncio.fixture
 async def admin_token(client: AsyncClient, test_admin: User) -> str:
     resp = await client.post("/api/v1/auth/login", json={"email": "admin@test.com", "password": "TestPass123!"})
+    assert resp.status_code == 200, resp.text
     return resp.json()["access_token"]
 
 
 @pytest_asyncio.fixture
 async def student_token(client: AsyncClient, test_student: User) -> str:
     resp = await client.post("/api/v1/auth/login", json={"email": "student@test.com", "password": "TestPass123!"})
+    assert resp.status_code == 200, resp.text
+    return resp.json()["access_token"]
+
+
+@pytest_asyncio.fixture
+async def instructor_token(client: AsyncClient, test_instructor: User) -> str:
+    resp = await client.post("/api/v1/auth/login", json={"email": "instructor@test.com", "password": "TestPass123!"})
+    assert resp.status_code == 200, resp.text
     return resp.json()["access_token"]

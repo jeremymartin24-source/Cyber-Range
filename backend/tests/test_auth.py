@@ -52,6 +52,13 @@ async def test_change_password(client: AsyncClient, test_student: User, student_
         headers={"Authorization": f"Bearer {student_token}"},
     )
     assert resp.status_code == 200
+    # Restore original password so other tests are not affected
+    resp2 = await client.put(
+        "/api/v1/auth/me/password",
+        json={"current_password": "NewPass456!", "new_password": "TestPass123!"},
+        headers={"Authorization": f"Bearer {student_token}"},
+    )
+    assert resp2.status_code == 200
 
 
 @pytest.mark.asyncio
