@@ -42,3 +42,7 @@ celerybeat.pid
 
 # Alembic
 # (keep migrations but not pyc)
+
+# Test artifacts
+backend/test.db
+*.db
