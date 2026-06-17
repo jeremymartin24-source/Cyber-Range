@@ -11,6 +11,7 @@ from app.api.v1 import (
     evidence,
     case_notes,
     decisions,
+    scenarios,
 )
 
 router = APIRouter(prefix="/api/v1")
@@ -25,3 +26,5 @@ router.include_router(alerts.router)
 router.include_router(evidence.router)
 router.include_router(case_notes.router)
 router.include_router(decisions.router)
+router.include_router(scenarios.router)
+router.include_router(scenarios.runs_router)

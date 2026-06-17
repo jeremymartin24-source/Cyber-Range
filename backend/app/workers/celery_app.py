@@ -19,5 +19,9 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
-    # Wazuh tasks will be added in Phase 4
+    "process-pending-injects": {
+        "task": "workers.process_pending_injects",
+        "schedule": 30.0,  # every 30 seconds
+    },
+    # Wazuh polling will be added in Phase 4
 }

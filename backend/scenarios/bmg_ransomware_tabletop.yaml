@@ -1,0 +1,109 @@
+id: bmg-ransomware-tabletop
+name: "BMG Ransomware Tabletop Exercise"
+version: "1.0.0"
+difficulty: advanced
+estimated_duration_minutes: 120
+description: >
+  A ransomware attack simulation targeting BMG's manufacturing floor systems.
+  Students must rapidly triage alerts, coordinate isolation, and escalate
+  appropriately while preserving forensic evidence.
+
+objectives:
+  - Detect initial access within 5 minutes of the first alert
+  - Escalate severity to Critical when ransomware note is found
+  - Isolate all affected endpoints within 20 minutes
+  - Document the attack chain via linked alerts and evidence
+  - Complete a full incident report
+
+ttps:
+  - T1190   # Exploit Public-Facing Application
+  - T1486   # Data Encrypted for Impact
+  - T1490   # Inhibit System Recovery
+  - T1489   # Service Stop
+  - T1083   # File and Directory Discovery
+
+injects:
+  - id: initial-exploit-alert
+    type: alert
+    at_minute: 0
+    data:
+      rule_id: "200001"
+      rule_level: 13
+      rule_description: "Web application exploit attempt — SQL injection on manufacturing portal"
+      rule_groups:
+        - web_attack
+        - sql_injection
+      agent_name: "WEB-PROD-01"
+      raw_data:
+        src_ip: "203.0.113.99"
+        url: "/portal/reports?id=1+UNION+SELECT+..."
+        response_code: 200
+        timestamp: "2024-02-20T06:14:03Z"
+
+  - id: ransomware-drop-alert
+    type: alert
+    at_minute: 10
+    data:
+      rule_id: "200002"
+      rule_level: 15
+      rule_description: "Ransomware file extension pattern detected — mass file rename"
+      rule_groups:
+        - ransomware
+        - file_integrity
+      agent_name: "FILE-SERVER-01"
+      raw_data:
+        files_renamed: 1847
+        extension: ".bmglocked"
+        user: "SYSTEM"
+        timestamp: "2024-02-20T06:24:17Z"
+
+  - id: ransom-note-narrative
+    type: narrative_update
+    at_minute: 12
+    data:
+      update: >
+        A ransom note has been found on FILE-SERVER-01: "Your files have been encrypted.
+        Pay 15 BTC to bc1q... within 72 hours or all data will be published."
+        Management is asking for an immediate briefing.
+
+  - id: shadow-copy-alert
+    type: alert
+    at_minute: 15
+    data:
+      rule_id: "200003"
+      rule_level: 14
+      rule_description: "Volume shadow copy deletion detected"
+      rule_groups:
+        - ransomware
+        - defense_evasion
+      agent_name: "FILE-SERVER-01"
+      raw_data:
+        command: "vssadmin delete shadows /all /quiet"
+        user: "SYSTEM"
+        timestamp: "2024-02-20T06:25:01Z"
+
+  - id: containment-hint
+    type: hint
+    at_minute: 20
+    data:
+      message: >
+        Instructor note: Isolate FILE-SERVER-01 and WEB-PROD-01 immediately.
+        The attacker moved laterally from the web server to the file server via
+        a service account. Check for additional affected hosts.
+
+  - id: lateral-spread-alert
+    type: alert
+    at_minute: 22
+    data:
+      rule_id: "200004"
+      rule_level: 12
+      rule_description: "PsExec lateral movement detected"
+      rule_groups:
+        - lateral_movement
+        - psexec
+      agent_name: "MFG-SCADA-01"
+      raw_data:
+        src_host: "FILE-SERVER-01"
+        service_name: "PSEXESVC"
+        user: "svc_backup"
+        timestamp: "2024-02-20T06:28:44Z"

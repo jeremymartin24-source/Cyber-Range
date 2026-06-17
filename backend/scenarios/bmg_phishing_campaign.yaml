@@ -1,0 +1,136 @@
+id: bmg-phishing-campaign
+name: "BMG Phishing Campaign Response"
+version: "1.0.0"
+difficulty: intermediate
+estimated_duration_minutes: 90
+description: >
+  A targeted spear-phishing campaign against Buckeye Manufacturing Group employees.
+  Students must triage alerts, investigate compromised endpoints, contain the threat,
+  and document their findings in a full incident report.
+
+objectives:
+  - Identify and acknowledge phishing-related alerts within 10 minutes of detection
+  - Correctly classify incident severity as High or Critical
+  - Isolate at least one compromised endpoint
+  - Link relevant alerts to the incident
+  - Collect network or log evidence supporting the investigation
+  - Transition incident through triage → contained → resolved
+
+ttps:
+  - T1566.001  # Spearphishing Attachment
+  - T1059.001  # PowerShell
+  - T1055      # Process Injection
+  - T1083      # File and Directory Discovery
+  - T1041      # Exfiltration Over C2 Channel
+
+injects:
+  - id: initial-phish-alert
+    type: alert
+    at_minute: 0
+    data:
+      rule_id: "100001"
+      rule_level: 12
+      rule_description: "Malicious attachment executed via Outlook"
+      rule_groups:
+        - phishing
+        - malware
+      agent_name: "WIN-WS-CAROL-01"
+      raw_data:
+        event_id: 4688
+        process_name: "powershell.exe"
+        parent_process: "OUTLOOK.EXE"
+        command_line: "powershell.exe -enc JABjAGwAaQBlAG4AdAAgAD0..."
+        user: "carol.johnson"
+        timestamp: "2024-01-15T08:32:11Z"
+
+  - id: lateral-movement-hint
+    type: hint
+    at_minute: 15
+    data:
+      message: >
+        Instructor note: The threat actor attempted lateral movement. Check for
+        unusual SMB connections from WIN-WS-CAROL-01 to the file server.
+
+  - id: c2-beacon-alert
+    type: alert
+    at_minute: 20
+    data:
+      rule_id: "100002"
+      rule_level: 14
+      rule_description: "Possible C2 beacon — repeated outbound connections on non-standard port"
+      rule_groups:
+        - c2
+        - network
+      agent_name: "WIN-WS-CAROL-01"
+      raw_data:
+        dst_ip: "185.220.101.47"
+        dst_port: 4444
+        protocol: "TCP"
+        connection_count: 23
+        interval_seconds: 30
+        user: "carol.johnson"
+        timestamp: "2024-01-15T08:52:00Z"
+
+  - id: endpoint-compromise-narrative
+    type: narrative_update
+    at_minute: 25
+    data:
+      update: >
+        IT Security has received a report from carol.johnson — she opened an email
+        attachment from a supplier, and her workstation started behaving strangely
+        shortly after. The attachment was named "Q4_Invoice_BMG.pdf.exe".
+
+  - id: second-endpoint-alert
+    type: alert
+    at_minute: 35
+    data:
+      rule_id: "100003"
+      rule_level: 10
+      rule_description: "Mimikatz-like credential dumping behaviour detected"
+      rule_groups:
+        - credential_access
+        - lsass
+      agent_name: "WIN-WS-BOB-01"
+      raw_data:
+        event_id: 10
+        process_name: "rundll32.exe"
+        target_process: "lsass.exe"
+        user: "bob.smith"
+        timestamp: "2024-01-15T09:07:45Z"
+
+  - id: containment-hint
+    type: hint
+    at_minute: 45
+    data:
+      message: >
+        Instructor note: Both WIN-WS-CAROL-01 and WIN-WS-BOB-01 should be isolated
+        before the threat actor can exfiltrate further data. Use the endpoint isolation
+        feature now.
+
+  - id: exfil-alert
+    type: alert
+    at_minute: 50
+    data:
+      rule_id: "100004"
+      rule_level: 15
+      rule_description: "Large data exfiltration attempt — DNS tunneling"
+      rule_groups:
+        - exfiltration
+        - dns_tunnel
+      agent_name: "WIN-WS-BOB-01"
+      raw_data:
+        query_count: 512
+        avg_query_length: 220
+        domain: "exfil.c2domain.example.com"
+        user: "bob.smith"
+        timestamp: "2024-01-15T09:52:00Z"
+
+  - id: resolution-narrative
+    type: narrative_update
+    at_minute: 75
+    data:
+      update: >
+        The threat has been contained. Affected workstations have been re-imaged.
+        Passwords for all affected users have been reset. IT has deployed updated
+        email filtering rules to block the phishing domain. Prepare your incident
+        report summary.

@@ -9,6 +9,7 @@ from app.models.alert import Alert, IncidentAlert
 from app.models.evidence import Evidence, EvidenceType
 from app.models.case_note import CaseNote
 from app.models.student_decision import StudentDecision, DecisionType
+from app.models.scenario import Scenario, ScenarioRun, Inject, ScenarioDifficulty, ScenarioRunStatus, InjectType, InjectStatus
 
 __all__ = [
     "Base",
@@ -23,4 +24,6 @@ __all__ = [
     "Evidence", "EvidenceType",
     "CaseNote",
     "StudentDecision", "DecisionType",
+    "Scenario", "ScenarioRun", "Inject",
+    "ScenarioDifficulty", "ScenarioRunStatus", "InjectType", "InjectStatus",
 ]
