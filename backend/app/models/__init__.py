@@ -10,6 +10,7 @@ from app.models.evidence import Evidence, EvidenceType
 from app.models.case_note import CaseNote
 from app.models.student_decision import StudentDecision, DecisionType
 from app.models.scenario import Scenario, ScenarioRun, Inject, ScenarioDifficulty, ScenarioRunStatus, InjectType, InjectStatus
+from app.models.grade import StudentGrade
 
 __all__ = [
     "Base",
@@ -26,4 +27,5 @@ __all__ = [
     "StudentDecision", "DecisionType",
     "Scenario", "ScenarioRun", "Inject",
     "ScenarioDifficulty", "ScenarioRunStatus", "InjectType", "InjectStatus",
+    "StudentGrade",
 ]
