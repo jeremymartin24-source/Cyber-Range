@@ -28,8 +28,6 @@ def upgrade() -> None:
     )
     op.create_index("ix_organizations_slug", "organizations", ["slug"], unique=True)
 
-    op.execute("CREATE TYPE user_role AS ENUM ('admin', 'instructor', 'student')")
-
     op.create_table(
         "users",
         sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
@@ -37,7 +35,7 @@ def upgrade() -> None:
         sa.Column("password_hash", sa.String(255), nullable=False),
         sa.Column("first_name", sa.String(100), nullable=False),
         sa.Column("last_name", sa.String(100), nullable=False),
-        sa.Column("role", sa.Enum("admin", "instructor", "student", name="user_role", create_type=False), nullable=False),
+        sa.Column("role", sa.Enum("admin", "instructor", "student", name="user_role"), nullable=False),
         sa.Column("organization_id", UUID(as_uuid=True), sa.ForeignKey("organizations.id", ondelete="RESTRICT"), nullable=False),
         sa.Column("is_active", sa.Boolean, nullable=False, server_default="true"),
         sa.Column("last_login_at", sa.DateTime(timezone=True), nullable=True),

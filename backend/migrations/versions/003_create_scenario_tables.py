@@ -18,12 +18,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # ── Enums ─────────────────────────────────────────────────────────────────
-    op.execute("CREATE TYPE scenario_difficulty AS ENUM ('beginner', 'intermediate', 'advanced')")
-    op.execute("CREATE TYPE scenario_run_status AS ENUM ('pending', 'active', 'completed', 'aborted')")
-    op.execute("CREATE TYPE inject_type AS ENUM ('alert', 'endpoint_action', 'narrative_update', 'hint')")
-    op.execute("CREATE TYPE inject_status AS ENUM ('pending', 'fired', 'skipped', 'failed')")
-
     # ── Scenarios ─────────────────────────────────────────────────────────────
     op.create_table(
         "scenarios",

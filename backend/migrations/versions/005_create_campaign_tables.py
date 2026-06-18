@@ -18,10 +18,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # ── Enums ─────────────────────────────────────────────────────────────────
-    op.execute("CREATE TYPE campaign_run_status AS ENUM ('draft', 'active', 'completed', 'aborted')")
-    op.execute("CREATE TYPE campaign_run_progress_status AS ENUM ('pending', 'active', 'completed', 'skipped')")
-
     # ── Campaigns ─────────────────────────────────────────────────────────────
     op.create_table(
         "campaigns",

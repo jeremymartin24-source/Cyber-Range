@@ -273,12 +273,12 @@ async def seed() -> None:  # noqa: C901
                     ),
                     created_by=admin.id,
                 )
-                for position, sc in enumerate(scenarios[:2], start=1):
+                for order_index, sc in enumerate(scenarios[:2], start=1):
                     db.add(
                         CampaignScenarioEntry(
                             campaign_id=camp.id,
                             scenario_id=sc.id,
-                            position=position,
+                            order_index=order_index,
                         )
                     )
                 await db.commit()

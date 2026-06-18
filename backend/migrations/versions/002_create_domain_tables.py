@@ -18,24 +18,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # ── Enums ─────────────────────────────────────────────────────────────────
-    op.execute("CREATE TYPE enrollment_status AS ENUM ('active', 'withdrawn', 'completed')")
-    op.execute("CREATE TYPE team_member_role AS ENUM ('lead', 'analyst')")
-    op.execute("CREATE TYPE endpoint_status AS ENUM ('active', 'offline', 'isolated', 'decommissioned')")
-    op.execute("CREATE TYPE incident_severity AS ENUM ('critical', 'high', 'medium', 'low', 'informational')")
-    op.execute("CREATE TYPE incident_status AS ENUM ('open', 'investigating', 'contained', 'resolved', 'closed')")
-    op.execute(
-        "CREATE TYPE evidence_type AS ENUM "
-        "('screenshot', 'log_extract', 'alert_export', 'file_hash', 'network_capture', "
-        "'process_list', 'registry_key', 'email_header', 'other')"
-    )
-    op.execute(
-        "CREATE TYPE decision_type AS ENUM "
-        "('initial_triage', 'severity_change', 'status_change', 'alert_acknowledged', "
-        "'alert_linked', 'evidence_collected', 'endpoint_isolated', 'endpoint_restored', "
-        "'user_account_disabled', 'escalation', 'note_added', 'report_submitted', 'other')"
-    )
-
     # ── Incident number sequence ───────────────────────────────────────────────
     op.execute("CREATE SEQUENCE incident_number_seq START 1")
 
@@ -61,7 +43,7 @@ def upgrade() -> None:
         sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("course_id", UUID(as_uuid=True), sa.ForeignKey("courses.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("status", sa.Enum("active", "withdrawn", "completed", name="enrollment_status", create_type=False), nullable=False, server_default="active"),
+        sa.Column("status", sa.Enum("active", "withdrawn", "completed", name="enrollment_status"), nullable=False, server_default="active"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.UniqueConstraint("user_id", "course_id", name="uq_enrollments_user_course"),
@@ -86,7 +68,7 @@ def upgrade() -> None:
         sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("team_id", UUID(as_uuid=True), sa.ForeignKey("teams.id", ondelete="CASCADE"), nullable=False),
         sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("role", sa.Enum("lead", "analyst", name="team_member_role", create_type=False), nullable=False, server_default="analyst"),
+        sa.Column("role", sa.Enum("lead", "analyst", name="team_member_role"), nullable=False, server_default="analyst"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.UniqueConstraint("team_id", "user_id", name="uq_team_members_team_user"),
@@ -105,7 +87,7 @@ def upgrade() -> None:
         sa.Column("os_platform", sa.String(50), nullable=True),
         sa.Column("os_version", sa.String(100), nullable=True),
         sa.Column("agent_version", sa.String(50), nullable=True),
-        sa.Column("status", sa.Enum("active", "offline", "isolated", "decommissioned", name="endpoint_status", create_type=False), nullable=False, server_default="active"),
+        sa.Column("status", sa.Enum("active", "offline", "isolated", "decommissioned", name="endpoint_status"), nullable=False, server_default="active"),
         sa.Column("last_seen_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("tags", JSON, nullable=False, server_default="[]"),
         sa.Column("description", sa.Text, nullable=True),
@@ -124,8 +106,8 @@ def upgrade() -> None:
         sa.Column("incident_number", sa.String(30), nullable=False, unique=True),
         sa.Column("title", sa.String(255), nullable=False),
         sa.Column("description", sa.Text, nullable=True),
-        sa.Column("severity", sa.Enum("critical", "high", "medium", "low", "informational", name="incident_severity", create_type=False), nullable=False, server_default="medium"),
-        sa.Column("status", sa.Enum("open", "investigating", "contained", "resolved", "closed", name="incident_status", create_type=False), nullable=False, server_default="open"),
+        sa.Column("severity", sa.Enum("critical", "high", "medium", "low", "informational", name="incident_severity"), nullable=False, server_default="medium"),
+        sa.Column("status", sa.Enum("open", "investigating", "contained", "resolved", "closed", name="incident_status"), nullable=False, server_default="open"),
         sa.Column("category", sa.String(50), nullable=True),
         sa.Column("assigned_to", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         sa.Column("team_id", UUID(as_uuid=True), sa.ForeignKey("teams.id", ondelete="SET NULL"), nullable=True),
@@ -189,7 +171,7 @@ def upgrade() -> None:
         sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("incident_id", UUID(as_uuid=True), sa.ForeignKey("incidents.id", ondelete="CASCADE"), nullable=False),
         sa.Column("collected_by", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),
-        sa.Column("type", sa.Enum("screenshot", "log_extract", "alert_export", "file_hash", "network_capture", "process_list", "registry_key", "email_header", "other", name="evidence_type", create_type=False), nullable=False),
+        sa.Column("type", sa.Enum("screenshot", "log_extract", "alert_export", "file_hash", "network_capture", "process_list", "registry_key", "email_header", "other", name="evidence_type"), nullable=False),
         sa.Column("title", sa.String(255), nullable=False),
         sa.Column("description", sa.Text, nullable=True),
         sa.Column("content", sa.Text, nullable=True),
@@ -225,7 +207,7 @@ def upgrade() -> None:
         sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("incident_id", UUID(as_uuid=True), sa.ForeignKey("incidents.id", ondelete="SET NULL"), nullable=True),
         sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),
-        sa.Column("decision_type", sa.Enum("initial_triage", "severity_change", "status_change", "alert_acknowledged", "alert_linked", "evidence_collected", "endpoint_isolated", "endpoint_restored", "user_account_disabled", "escalation", "note_added", "report_submitted", "other", name="decision_type", create_type=False), nullable=False),
+        sa.Column("decision_type", sa.Enum("initial_triage", "severity_change", "status_change", "alert_acknowledged", "alert_linked", "evidence_collected", "endpoint_isolated", "endpoint_restored", "user_account_disabled", "escalation", "note_added", "report_submitted", "other", name="decision_type"), nullable=False),
         sa.Column("decision_data", JSON, nullable=False, server_default="{}"),
         sa.Column("rationale", sa.Text, nullable=True),
         sa.Column("auto_score", sa.Numeric(5, 2), nullable=True),
