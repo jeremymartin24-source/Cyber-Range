@@ -1,12 +1,12 @@
 FROM node:22-alpine AS base
 WORKDIR /app
-ENV NODE_ENV=development
 
 FROM base AS deps
 COPY package.json package-lock.json* ./
 RUN npm ci
 
 FROM deps AS dev
+ENV NODE_ENV=development
 COPY . .
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
