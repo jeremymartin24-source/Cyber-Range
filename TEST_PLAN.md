@@ -14,13 +14,13 @@ Check off each item as you verify it. Start the stack with `docker compose up` b
 
 ## 1. Authentication
 
-- [ ] Visit http://localhost:3000 — should redirect to `/login`
-- [ ] Submit with wrong password — should show `Invalid credentials` error (not a crash)
-- [ ] Submit with empty fields — browser should block submission (required fields)
-- [ ] Log in as Admin — should land on `/dashboard`
-- [ ] Refresh the page while logged in — should stay on dashboard (session persists)
-- [ ] Click **Sign out** — should redirect to `/login`
-- [ ] Try visiting http://localhost:3000/dashboard while logged out — should redirect to `/login`
+- [x] Visit http://localhost:3000 — should redirect to `/login`
+- [x] Submit with wrong password — should show `Invalid credentials` error (not a crash)
+- [x] Submit with empty fields — browser should block submission (required fields)
+- [x] Log in as Admin — should land on `/dashboard`
+- [x] Refresh the page while logged in — should stay on dashboard (session persists)
+- [x] Click **Sign out** — should redirect to `/login`
+- [x] Try visiting http://localhost:3000/dashboard while logged out — should redirect to `/login`
 
 ---
 
@@ -29,35 +29,40 @@ Check off each item as you verify it. Start the stack with `docker compose up` b
 Log in as `admin@bmg.example.com`.
 
 ### Sidebar
-- [ ] Sidebar shows: Dashboard, Incidents, Alerts, Scenarios, Campaigns, Courses, Users
-- [ ] Footer shows **System Admin** with role label `admin`
+- [x] Sidebar shows: Dashboard, Incidents, Alerts, Scenarios, Campaigns, Courses, Users
+- [x] Footer shows **System Admin** with role label `admin`
 
 ### Dashboard
 - [ ] Page loads without errors
-- [ ] Four stat cards visible: Open Incidents, Total Incidents, Active Runs, Campaign Runs
-- [ ] "No active incidents" and "No active runs" placeholders visible (expected — nothing running yet)
+    - Still getting Hydration error
+- [x] Four stat cards visible: Open Incidents, Total Incidents, Active Runs, Campaign Runs
+- [x] "No active incidents" and "No active runs" placeholders visible (expected — nothing running yet)
 
 ### Users (`/admin/users`)
-- [ ] Table loads with 4 rows (admin, instructor, alice, bob)
-- [ ] Roles are color-coded (admin=red, instructor=yellow, student=blue)
-- [ ] All 4 users show status `active`
+- [x] Table loads with 4 rows (admin, instructor, alice, bob)
+      - 6 users are present. admin, instructor, and 4 other users
+- [x] Roles are color-coded (admin=red, instructor=yellow, student=blue)
+- [x] All 4 users show status `active`
 
 ### Courses (`/courses`)
 - [ ] "BMG Foundations" course appears in the list
-- [ ] Click the course — detail page loads showing enrollment section
+      - Course appears but is "Introduction to Cybersecurity Operations" instead
+- [x] Click the course — detail page loads showing enrollment section
+      - the buton said "manage" not de
 
 ### Scenarios (`/scenarios`)
-- [ ] Seeded scenarios appear in the list
-- [ ] Each scenario shows difficulty badge and estimated duration
+- [x] Seeded scenarios appear in the list
+- [x] Each scenario shows difficulty badge and estimated duration
 
 ### Campaigns (`/campaigns`)
 - [ ] At least one seeded campaign appears
+      - Selecting campaign takes me to login screen
 
 ### Incidents (`/incidents`)
-- [ ] Page loads (empty list is fine — no incidents created yet)
+- [x] Page loads (empty list is fine — no incidents created yet)
 
 ### Alerts (`/alerts`)
-- [ ] Page loads (empty list is fine)
+- [x] Page loads (empty list is fine)
 
 ---
 
