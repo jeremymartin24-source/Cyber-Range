@@ -1,5 +1,5 @@
 import { serverApi } from '@/lib/server-api'
-import type { User } from '@/lib/types'
+import type { User, PaginatedUsers } from '@/lib/types'
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'text-red-400',
@@ -10,7 +10,8 @@ const ROLE_COLORS: Record<string, string> = {
 export default async function UsersPage() {
   let users: User[] = []
   try {
-    users = await serverApi.get<User[]>('/api/v1/users')
+    const data = await serverApi.get<PaginatedUsers>('/api/v1/users')
+    users = data.items
   } catch {
     // handled below
   }
